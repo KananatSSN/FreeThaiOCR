@@ -1,0 +1,17 @@
+ThaiOCR
+Copyright 2026 ThaiOCR contributors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This product bundles and adapts third-party work:
+
+  OpenThai2.0-OCR-Text by iApp Technology (Apache-2.0)
+  https://huggingface.co/iapp/OpenThai2.0-OCR-Text
+  The model files (det.onnx, rec.onnx, rec_dict.txt, config.json, det.yml) are
+  redistributed unmodified. src/ocr/ is a TypeScript port of the model's
+  reference runtime (runtime/line_engine.py, runtime/thai_norm.py).
+
+  That model includes or is derived from:
+    PP-OCRv6_tiny_det, PP-OCRv6_tiny_rec, th_PP-OCRv5_mobile_rec (character list)
+    Copyright (c) PaddlePaddle Authors (Apache-2.0)
+    https://huggingface.co/PaddlePaddle

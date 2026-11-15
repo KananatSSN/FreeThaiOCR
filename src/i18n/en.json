@@ -1,0 +1,142 @@
+{
+  "app": {
+    "title": "ThaiOCR",
+    "tagline": "Thai & English OCR that runs entirely in your browser",
+    "privacy": "Your files never leave your device."
+  },
+  "upload": {
+    "title": "Drop images, PDFs or a whole folder here",
+    "hint": "PNG, JPG, WebP, PDF · files are added to a list you can OCR in one go",
+    "camera": "Take a photo",
+    "another": "Open file",
+    "unsupported": "This file type isn't supported. Use an image or a PDF.",
+    "failed": "Couldn't open this file: {{error}}"
+  },
+  "features": {
+    "local": "Private: OCR runs on your device",
+    "box": "Draw boxes to read just part of a page",
+    "pdf": "Multi-page PDFs, with embedded text used when present",
+    "export": "Copy, or export TXT, JSON or a searchable PDF"
+  },
+  "toolbar": {
+    "pan": "Move",
+    "box": "Draw box",
+    "ocrPage": "OCR page",
+    "ocrAll": "OCR all pages",
+    "ocrAgain": "OCR again",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "fit": "Fit to screen",
+    "prev": "Previous page",
+    "next": "Next page",
+    "page": "Page {{n}} of {{total}}",
+    "cancel": "Cancel",
+    "progress": "OCR {{done}} / {{total}} pages",
+    "boxHint": "Drag on the page to draw a box"
+  },
+  "engine": {
+    "loading": "Loading OCR engine…",
+    "runtime": "Loading OCR engine…",
+    "models": "Loading models…",
+    "firstTime": "First time only: about 8 MB, cached for later and offline use.",
+    "error": "The OCR engine failed to load: {{error}}",
+    "gpu": "Use GPU (WebGPU)",
+    "gpuHint": "Faster on some devices. Downloads an extra ~4 MB runtime.",
+    "gpuUnavailable": "WebGPU isn't available in this browser."
+  },
+  "results": {
+    "title": "Results",
+    "page": "Page",
+    "boxes": "Boxes",
+    "empty": "No text yet. Press “OCR page”, or draw a box.",
+    "emptyBoxes": "No boxes yet. Choose “Draw box” and drag on the page.",
+    "fromPdf": "From PDF text",
+    "fromOcr": "OCR",
+    "edited": "Edited",
+    "running": "Reading…",
+    "error": "Failed: {{error}}",
+    "copy": "Copy",
+    "copied": "Copied",
+    "copyAll": "Copy all",
+    "combined": "All boxes in order",
+    "delete": "Delete box",
+    "rerun": "Read again",
+    "revert": "Undo edits",
+    "box": "Box {{n}}",
+    "rotated": "Page was read rotated {{deg}}°",
+    "clearBoxes": "Delete all boxes",
+    "show": "Show results"
+  },
+  "export": {
+    "menu": "Export",
+    "copyAll": "Copy all text",
+    "txt": "Text file (.txt)",
+    "json": "JSON with positions (.json)",
+    "pdf": "Searchable PDF",
+    "thisFile": "This file · {{name}}",
+    "allFiles_one": "All {{count}} file (ZIP)",
+    "allFiles_other": "All {{count}} files (ZIP)",
+    "zipTxt": "Text files (.txt)",
+    "zipJson": "JSON files (.json)",
+    "zipPdf": "Searchable PDFs",
+    "completeNote": "Pages not read yet are OCR’d first.",
+    "preparing": "Preparing export…",
+    "ocrMissing": "Reading pages that have no text yet…",
+    "long": "this may take a while",
+    "done": "Export saved",
+    "cancelled": "Export cancelled",
+    "failed": "Export failed: {{error}}"
+  },
+  "donate": {
+    "title": "Support ThaiOCR",
+    "body": "ThaiOCR is free and open source. Donations pay for hosting and development.",
+    "promptpay": "PromptPay (Thai banking apps)",
+    "amount": "Amount (THB, optional)",
+    "kofi": "Support on Ko-fi",
+    "kofiHint": "Card or PayPal, from anywhere",
+    "save": "Save QR image",
+    "saveHint": "On a phone: save the image, then choose it from your banking app’s scan screen."
+  },
+  "about": {
+    "button": "About",
+    "title": "About ThaiOCR",
+    "body": "ThaiOCR reads printed Thai and English text. Everything, including the OCR models, runs in your browser. Nothing is uploaded.",
+    "limits": "Works best on printed documents. Handwriting, photos of signs and decorative fonts read poorly.",
+    "model": "OCR model: OpenThai 2.0 OCR Text by iApp Technology (Apache-2.0), based on PaddleOCR PP-OCRv6 (Apache-2.0).",
+    "license": "ThaiOCR is open source under the Apache-2.0 license.",
+    "source": "Source code"
+  },
+  "theme": {
+    "toggle": "Toggle dark mode"
+  },
+  "lang": {
+    "toggle": "ภาษาไทย"
+  },
+  "files": {
+    "title": "Files",
+    "add": "Add files",
+    "pickFiles": "Choose files…",
+    "pickFolder": "Choose folder…",
+    "added_one": "Added {{count}} file",
+    "added_other": "Added {{count}} files",
+    "skipped_one": "skipped {{count}} unsupported file",
+    "skipped_other": "skipped {{count}} unsupported files",
+    "duplicates_one": "{{count}} already open",
+    "duplicates_other": "{{count}} already open",
+    "allDuplicates": "These files are already open.",
+    "remove": "Remove {{name}}",
+    "more": "More",
+    "clear": "Remove all files",
+    "ocrAll": "OCR all files",
+    "error": "Unreadable",
+    "expandAll": "Expand all folders",
+    "collapseAll": "Collapse all folders"
+  },
+  "fab": {
+    "open": "Support & links",
+    "close": "Close",
+    "donate": "Support the developer",
+    "github": "Source code on GitHub",
+    "model": "OpenThai model on Hugging Face"
+  }
+}
