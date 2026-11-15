@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Files, Hand, Layers, Loader2, Maximize, ScanText, Settings2, SquareDashedMousePointer, ZoomIn, ZoomOut } from 'lucide-react'
+import { CheckCheck, ChevronLeft, ChevronRight, Files, Hand, Layers, ListChecks, Loader2, Maximize, ScanText, Settings2, SquareDashedMousePointer, ZoomIn, ZoomOut } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -6,8 +6,8 @@ import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMe
 import { Separator } from '@/components/ui/separator'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { ocrAll, ocrPage } from '@/lib/ocrService'
-import { type Mode, useActiveFile, useActivePage, useApp } from '@/state/store'
+import { ocrAll, ocrAllFiles, ocrPage } from '@/lib/ocrService'
+import { type Mode, pagesDone, useActiveFile, useActivePage, useApp } from '@/state/store'
 import { BatchProgress } from './BatchProgress'
 import type { ViewerHandle } from './PageViewer'
 
@@ -30,7 +30,11 @@ export function Toolbar({ viewer, onOpenFiles }: { viewer: ViewerHandle | null; 
   const mode = useApp((s) => s.mode)
   const batch = useApp((s) => s.batch)
   const backend = useApp((s) => s.backend)
+  const nFiles = useApp((s) => s.files.length)
+  // Files that still have pages without text (still-loading files count too).
+  const filesLeft = useApp((s) => s.files.filter((f) => f.status === 'loading' || (f.status === 'ready' && pagesDone(f) < f.pages.length)).length)
   if (!file || !page) return null
+  const multi = nFiles > 1
   const total = file.meta?.pageCount ?? 1
   const fileId = file.id
   const running = page.status === 'running'
@@ -52,10 +56,25 @@ export function Toolbar({ viewer, onOpenFiles }: { viewer: ViewerHandle | null; 
         </ToggleGroupItem>
       </ToggleGroup>
 
-      <Button size="sm" onClick={() => void ocrPage(fileId, current).catch(() => {})} disabled={running || !!batch}>
+      {/* With several files, "OCR all files" is the main action; this one steps back. */}
+      <Button size="sm" variant={multi ? 'outline' : 'default'} onClick={() => void ocrPage(fileId, current).catch(() => {})} disabled={running || !!batch}>
         {running ? <Loader2 className="animate-spin" /> : <ScanText />}
         {done ? t('toolbar.ocrAgain') : t('toolbar.ocrPage')}
       </Button>
+
+      {multi &&
+        (batch?.scope === 'all' ? (
+          <BatchProgress showFile />
+        ) : filesLeft ? (
+          <Button size="sm" onClick={() => void ocrAllFiles()} disabled={!!batch}>
+            <ListChecks /> {t('files.ocrAll')}
+            <span className="rounded-full bg-primary-foreground/20 px-1.5 text-xs tabular-nums">{filesLeft}</span>
+          </Button>
+        ) : (
+          <Button size="sm" variant="ghost" disabled className="text-emerald-700 opacity-100 dark:text-emerald-400">
+            <CheckCheck /> <span className="hidden sm:inline">{t('files.allDone')}</span>
+          </Button>
+        ))}
 
       {total > 1 &&
         (batch?.scope === 'file' ? (

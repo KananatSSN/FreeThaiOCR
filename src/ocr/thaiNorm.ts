@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+// Derived from runtime/thai_norm.py and runtime/line_engine.py in iapp/OpenThai2.0-OCR-Text
+// (https://huggingface.co/iapp/OpenThai2.0-OCR-Text), Copyright (c) iApp Technology,
+// licensed under the Apache License 2.0. Ported to TypeScript and modified by the
+// FreeThaiOCR contributors. See NOTICE.
 // Port of runtime/thai_norm.py and the text helpers of runtime/line_engine.py
 // (OpenThai2.0-OCR-Text, Apache-2.0). Keep in step with the Python reference:
 // tests/parity checks this module against its output.

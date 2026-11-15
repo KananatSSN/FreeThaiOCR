@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: Apache-2.0
+// Derived from runtime/line_engine.py in iapp/OpenThai2.0-OCR-Text
+// (https://huggingface.co/iapp/OpenThai2.0-OCR-Text), Copyright (c) iApp Technology,
+// licensed under the Apache License 2.0. Ported to TypeScript and modified by the
+// FreeThaiOCR contributors. See NOTICE.
 // DB text-line detector: LineOCR.detect and its helpers (_mini_box, _box_score, _unclip).
 import ClipperLib from 'clipper-lib'
 import type { Mat } from '@techstark/opencv-js'

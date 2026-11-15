@@ -6,6 +6,8 @@ import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
 import { compression, defineAlgorithm } from 'vite-plugin-compression2'
 import { VitePWA } from 'vite-plugin-pwa'
+import models from './models.json' with { type: 'json' }
+import { buildLicensesText } from './scripts/third-party-licenses.ts'
 
 // COOP/COEP make the page cross-origin isolated, which onnxruntime-web needs
 // for multi-threaded WASM (SharedArrayBuffer). nginx sets the same headers in production.
@@ -44,17 +46,36 @@ function privateDonationQr(): Plugin {
   }
 }
 
+/** Serves (dev) and emits (build) /licenses.txt: every shipped package's license and notice. */
+function thirdPartyLicenses(): Plugin {
+  const root = import.meta.dirname
+  const text = () => buildLicensesText(root, path.join(root, 'public', 'models', models.revision.slice(0, 7)))
+  return {
+    name: 'third-party-licenses',
+    configureServer(server) {
+      server.middlewares.use('/licenses.txt', (_req, res) => {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8')
+        res.end(text())
+      })
+    },
+    generateBundle() {
+      this.emitFile({ type: 'asset', fileName: 'licenses.txt', source: text() })
+    },
+  }
+}
+
 export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
     privateDonationQr(),
+    thirdPartyLicenses(),
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'icon-192.png'],
       manifest: {
-        name: 'ThaiOCR',
-        short_name: 'ThaiOCR',
+        name: 'FreeThaiOCR',
+        short_name: 'FreeThaiOCR',
         description: 'Thai & English OCR that runs entirely in your browser',
         lang: 'th',
         theme_color: '#171717',
@@ -73,7 +94,8 @@ export default defineConfig({
         globPatterns: ['**/*.{js,mjs,css,html,svg,woff2,png}'],
         globIgnores: ['**/opencv*.js', '**/ort-wasm-*', '**/pdf.worker*', '**/vendor/**', '**/models/**'],
         maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
-        navigateFallbackDenylist: [/^\/models\//, /^\/vendor\//],
+        // Real files opened by navigation must not get the app shell instead.
+        navigateFallbackDenylist: [/^\/models\//, /^\/vendor\//, /^\/donate\//, /^\/licenses\.txt$/],
         runtimeCaching: [
           {
             // Content-hashed bundles and versioned paths never change: cache first.
@@ -81,7 +103,7 @@ export default defineConfig({
               sameOrigin && (/^\/assets\/.+\.(wasm|m?js)$/.test(url.pathname) || /^\/(models|vendor|fonts)\//.test(url.pathname)),
             handler: 'CacheFirst',
             options: {
-              cacheName: 'thaiocr-runtime',
+              cacheName: 'freethaiocr-runtime',
               expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 365 },
               cacheableResponse: { statuses: [200] },
             },

@@ -1,4 +1,4 @@
-# ThaiOCR
+# FreeThaiOCR
 
 **OCR ภาษาไทยและอังกฤษ ที่ทำงานในเบราว์เซอร์ทั้งหมด** — free, private Thai & English OCR that runs entirely in the browser. Files never leave the user's device; the server only hands out static files.
 
@@ -81,13 +81,28 @@ The server never runs OCR; it is a static nginx container. Cloudflare Tunnel pub
 | `TUNNEL_TOKEN` | Cloudflare Tunnel token (runtime, used by `cloudflared`) |
 | `VITE_PROMPTPAY_ID` | PromptPay ID (phone / national ID / e-wallet) for the donation QR. Hidden if unset |
 | `VITE_DONATE_URL` | Ko-fi or Buy Me a Coffee URL. Hidden if unset |
-| `VITE_REPO_URL` | Source repository link in the About dialog |
+| `VITE_REPO_URL` | Source repository link in the About dialog and support menu |
+| `VITE_OPERATOR_NAME` | Operator named in the privacy policy and terms (default: "the FreeThaiOCR maintainer") |
+| `VITE_CONTACT_EMAIL` | Contact e-mail in the privacy policy and terms (default: the repo's GitHub issues page). Recommended: privacy requests shouldn't have to be public |
+
+The donation QR card is read from `private/promptpay_qr.(jpg|png|webp)` at build time (the folder is gitignored, so forks never ship your account).
 
 `VITE_*` values are baked into the static build: rebuild the image after changing them.
 
 ### Security
 
-Strict CSP with no third-party origins. The page itself has no `unsafe-eval`; only the OCR worker script gets it, because OpenCV.js's embind bindings build functions at runtime. The container runs unprivileged nginx with a read-only filesystem.
+- Strict CSP with no third-party origins: files and OCR results cannot be sent anywhere, even by a buggy library. The page has no `unsafe-eval`; only the OCR worker script gets it, because OpenCV.js's embind bindings build functions at runtime.
+- Unprivileged nginx on a read-only filesystem, published on 127.0.0.1 only (the tunnel reaches it over the Docker network).
+- No access log, so visitor IPs are never stored; error logs are capped at 3 x 1 MB.
+- Pinned versions: `cloudflared` image, CI actions (commit SHAs), model files (revision + SHA-256).
+- ZIP entry names are sanitised; encrypted PDFs are refused for searchable export rather than stripped of their restrictions.
+- Turn on HSTS in Cloudflare (SSL/TLS, Edge Certificates); the origin speaks plain HTTP to the tunnel, so the header belongs at the edge.
+
+### Privacy and legal
+
+- `/privacy` and `/terms` (Thai and English, from `src/legal/content.ts`) describe exactly what the deployment does: no uploads, no access logs, no analytics, Cloudflare as processor. **Keep them true** if you add analytics, logging or a backend, and set `VITE_CONTACT_EMAIL`.
+- `/licenses.txt` is generated at build time with the license and notice texts of every shipped package, the OpenThai model NOTICE and the font licenses (minified bundles drop license comments, so this is how the notices travel with the code).
+- Not legal advice: for formal PDPA compliance, have the policy reviewed by a Thai lawyer.
 
 ## Limitations
 
@@ -98,7 +113,7 @@ Strict CSP with no third-party origins. The page itself has no `unsafe-eval`; on
 
 ## Licence and credits
 
-ThaiOCR is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE).
+FreeThaiOCR is licensed under the [Apache License 2.0](LICENSE). See [NOTICE](NOTICE).
 
 - OCR model and reference runtime: **OpenThai2.0-OCR-Text** © iApp Technology, Apache-2.0, derived from PaddleOCR PP-OCRv6 © PaddlePaddle Authors, Apache-2.0
 - PDF text-layer font: **Sarabun** © The Sarabun Project Authors, SIL Open Font License 1.1 (`public/fonts/Sarabun-OFL.txt`)

@@ -1,6 +1,6 @@
 {
   "app": {
-    "title": "ThaiOCR",
+    "title": "FreeThaiOCR",
     "tagline": "Thai & English OCR that runs entirely in your browser",
     "privacy": "Your files never leave your device."
   },
@@ -85,11 +85,12 @@
     "long": "this may take a while",
     "done": "Export saved",
     "cancelled": "Export cancelled",
-    "failed": "Export failed: {{error}}"
+    "failed": "Export failed: {{error}}",
+    "encrypted": "{{name}} is a protected (encrypted) PDF, so a searchable copy can’t be made. Text and JSON exports still work."
   },
   "donate": {
-    "title": "Support ThaiOCR",
-    "body": "ThaiOCR is free and open source. Donations pay for hosting and development.",
+    "title": "Support FreeThaiOCR",
+    "body": "FreeThaiOCR is free and open source. Donations pay for hosting and development.",
     "promptpay": "PromptPay (Thai banking apps)",
     "amount": "Amount (THB, optional)",
     "kofi": "Support on Ko-fi",
@@ -99,11 +100,11 @@
   },
   "about": {
     "button": "About",
-    "title": "About ThaiOCR",
-    "body": "ThaiOCR reads printed Thai and English text. Everything, including the OCR models, runs in your browser. Nothing is uploaded.",
+    "title": "About FreeThaiOCR",
+    "body": "FreeThaiOCR reads printed Thai and English text. Everything, including the OCR models, runs in your browser. Nothing is uploaded.",
     "limits": "Works best on printed documents. Handwriting, photos of signs and decorative fonts read poorly.",
     "model": "OCR model: OpenThai 2.0 OCR Text by iApp Technology (Apache-2.0), based on PaddleOCR PP-OCRv6 (Apache-2.0).",
-    "license": "ThaiOCR is open source under the Apache-2.0 license.",
+    "license": "FreeThaiOCR is open source under the Apache-2.0 license.",
     "source": "Source code"
   },
   "theme": {
@@ -130,7 +131,8 @@
     "ocrAll": "OCR all files",
     "error": "Unreadable",
     "expandAll": "Expand all folders",
-    "collapseAll": "Collapse all folders"
+    "collapseAll": "Collapse all folders",
+    "allDone": "All files read"
   },
   "fab": {
     "open": "Support & links",
@@ -138,5 +140,12 @@
     "donate": "Support the developer",
     "github": "Source code on GitHub",
     "model": "OpenThai model on Hugging Face"
+  },
+  "legal": {
+    "privacy": "Privacy policy",
+    "terms": "Terms of use",
+    "licenses": "Open-source licenses",
+    "back": "Back to FreeThaiOCR",
+    "nav": "Legal"
   }
 }

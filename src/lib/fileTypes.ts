@@ -59,16 +59,33 @@ export const fileKey = (file: { size: number; lastModified: number }, path: stri
  * made unique against `used` with " (2)", " (3)", ...
  */
 export function zipPath(sourcePath: string, suffix: string, used: Set<string>): string {
-  const stem = sourcePath.replace(/\.[^./]+$/, '') || 'document'
+  const stem = safeZipPath(sourcePath).replace(/\.[^./]+$/, '') || 'document'
   let candidate = `${stem}${suffix}`
   for (let n = 2; used.has(candidate.toLowerCase()); n++) candidate = `${stem} (${n})${suffix}`
   used.add(candidate.toLowerCase())
   return candidate
 }
 
+/**
+ * A path that is safe as a ZIP entry name: forward slashes only, no empty,
+ * "." or ".." segments, no drive letters or control characters, so extracting
+ * the archive can never write outside its folder ("zip slip").
+ */
+export function safeZipPath(path: string): string {
+  return path
+    .replace(/\\/g, '/')
+    .split('/')
+    // Control characters are exactly what this strips.
+    // eslint-disable-next-line no-control-regex
+    .map((seg) => seg.replace(/[\u0000-\u001f\u007f]/g, '').replace(/^[A-Za-z]:$/, '').trim())
+    .filter((seg) => seg && seg !== '.' && seg !== '..')
+    .join('/')
+}
+
 /** ZIP name: the common top folder of the inputs when there is one. */
 export function zipName(paths: string[]): string {
   const tops = new Set(paths.map((p) => (p.includes('/') ? p.split('/')[0] : '')))
   const [only] = [...tops]
-  return tops.size === 1 && only ? `${only}-thaiocr.zip` : 'thaiocr-export.zip'
+  const safe = only ? safeZipPath(only).replace(/\//g, '') : ''
+  return tops.size === 1 && safe ? `${safe}-freethaiocr.zip` : 'freethaiocr-export.zip'
 }

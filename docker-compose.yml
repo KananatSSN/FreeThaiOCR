@@ -1,4 +1,4 @@
-# ThaiOCR behind a Cloudflare Tunnel. Copy .env.example to .env, set TUNNEL_TOKEN, then:
+# FreeThaiOCR behind a Cloudflare Tunnel. Copy .env.example to .env, set TUNNEL_TOKEN, then:
 #   docker compose up -d --build
 # In the Cloudflare dashboard, point the tunnel's public hostname at http://web:8080
 services:
@@ -9,8 +9,13 @@ services:
         VITE_PROMPTPAY_ID: ${VITE_PROMPTPAY_ID:-}
         VITE_DONATE_URL: ${VITE_DONATE_URL:-}
         VITE_REPO_URL: ${VITE_REPO_URL:-}
-    image: thaiocr-web
+    image: freethaiocr-web
     restart: unless-stopped
+    logging: &logging # error logs only (access logs are off); capped so they can't grow forever
+      driver: json-file
+      options:
+        max-size: "1m"
+        max-file: "3"
     read_only: true
     tmpfs:
       - /tmp
@@ -19,8 +24,9 @@ services:
       - "127.0.0.1:${WEB_PORT:-8080}:8080"
 
   cloudflared:
-    image: cloudflare/cloudflared:latest # pin a version (e.g. cloudflare/cloudflared:2026.x.y) for reproducible deploys
+    image: cloudflare/cloudflared:2026.11.0 # pinned; bump deliberately after reading the release notes
     restart: unless-stopped
+    logging: *logging
     command: tunnel --no-autoupdate run
     environment:
       TUNNEL_TOKEN: ${TUNNEL_TOKEN:-} # from .env; see README "Cloudflare Tunnel"

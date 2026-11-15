@@ -13,7 +13,7 @@ void i18n
     nonExplicitSupportedLngs: true,
     fallbackLng: 'en',
     interpolation: { escapeValue: false },
-    detection: { order: ['querystring', 'localStorage', 'navigator'], lookupQuerystring: 'lng', lookupLocalStorage: 'thaiocr.lang', caches: ['localStorage'] },
+    detection: { order: ['querystring', 'localStorage', 'navigator'], lookupQuerystring: 'lng', lookupLocalStorage: 'freethaiocr.lang', caches: ['localStorage'] },
   })
 
 const syncHtmlLang = (lng: string) => document.documentElement.setAttribute('lang', lng.startsWith('th') ? 'th' : 'en')

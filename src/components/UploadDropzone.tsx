@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card'
 import { useAddFiles } from '@/hooks/useAddFiles'
 import { useFilePickers } from '@/hooks/useFilePickers'
 import { cn } from 'cn'
+import { LegalLinks } from './LegalPage'
 
 export function UploadDropzone() {
   const { t } = useTranslation()
@@ -68,6 +69,7 @@ export function UploadDropzone() {
           </Card>
         ))}
       </div>
+      <LegalLinks className="justify-center pt-2" />
     </div>
   )
 }

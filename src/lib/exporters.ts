@@ -18,6 +18,7 @@ import {
   PDFName,
 } from 'pdf-lib'
 import { Zip, ZipDeflate, ZipPassThrough } from 'fflate'
+import i18n from '@/i18n'
 import type { OcrLine } from '@/ocr/engine'
 import { type FileEntry, getFile, type PageState, pageText, useApp } from '@/state/store'
 import { type LoadedDoc, openDoc, pdfPointMapper } from './documents'
@@ -49,7 +50,7 @@ const buildTxt = (e: FileEntry) => new Blob([allText(e.pages)], { type: 'text/pl
 function buildJson(e: FileEntry): Blob {
   const data = {
     file: e.path,
-    generator: 'ThaiOCR (OpenThai2.0-OCR-Text)',
+    generator: 'FreeThaiOCR (OpenThai2.0-OCR-Text)',
     created: new Date().toISOString(),
     pages: e.pages.map((p, i) => ({
       page: i + 1,
@@ -182,7 +183,7 @@ function segments(lines: OcrLine[]): { text: string; box: [number, number][] }[]
 async function buildSearchablePdf(e: FileEntry): Promise<Blob> {
   const doc = await openDoc(e)
   const pages = e.pages
-  const out = doc.kind === 'pdf' ? await PDFDocument.load(await e.file.arrayBuffer(), { ignoreEncryption: true }) : await PDFDocument.create()
+  const out = doc.kind === 'pdf' ? await loadUnencrypted(e) : await PDFDocument.create()
   out.registerFontkit(fontkit)
   // The text layer is invisible, so shaping buys nothing, and it breaks extraction:
   // Thai GSUB rules swap tone marks for positional variants and split ำ into two
@@ -190,7 +191,7 @@ async function buildSearchablePdf(e: FileEntry): Promise<Blob> {
   // plain glyph instead.
   const noShaping = Object.fromEntries(['ccmp', 'locl', 'liga', 'clig', 'calt', 'rlig', 'mark', 'mkmk', 'kern', 'rclt', 'abvs', 'blws', 'psts'].map((f) => [f, false]))
   const font = await out.embedFont(await loadFont(), { subset: false, features: noShaping })
-  out.setProducer('ThaiOCR')
+  out.setProducer('FreeThaiOCR')
 
   for (let i = 0; i < pages.length; i++) {
     const p = pages[i]
@@ -222,6 +223,19 @@ async function buildSearchablePdf(e: FileEntry): Promise<Blob> {
     }
   }
   return new Blob([(await out.save()) as BlobPart], { type: 'application/pdf' })
+}
+
+/**
+ * Open the original PDF for adding a text layer. Encrypted PDFs are refused:
+ * pdf-lib cannot decrypt them, so the result would be broken, or would drop
+ * the owner's copy/print restrictions. TXT and JSON exports still work.
+ */
+async function loadUnencrypted(e: FileEntry): Promise<PDFDocument> {
+  // Load without decrypting, then check the flag: pdf-lib's own "encrypted"
+  // error is a plain Error, so it can't be told apart reliably.
+  const pdf = await PDFDocument.load(await e.file.arrayBuffer(), { ignoreEncryption: true })
+  if (pdf.isEncrypted) throw new Error(i18n.t('export.encrypted', { name: basename(e.path) }))
+  return pdf
 }
 
 async function embedImage(out: PDFDocument, doc: LoadedDoc) {

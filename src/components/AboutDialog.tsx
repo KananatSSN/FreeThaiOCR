@@ -2,6 +2,7 @@ import { Code, Info } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { LegalLinks } from './LegalPage'
 
 const REPO_URL = import.meta.env.VITE_REPO_URL?.trim()
 
@@ -35,6 +36,7 @@ export function AboutDialog() {
               </a>
             </Button>
           )}
+          <LegalLinks newTab className="border-t pt-3" />
         </div>
       </DialogContent>
     </Dialog>

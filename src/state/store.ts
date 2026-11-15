@@ -138,7 +138,7 @@ export const useApp = create<AppState>((set, get) => ({
   activeId: null,
   current: 0,
   mode: 'pan',
-  backend: readPref<Backend>('thaiocr.backend', 'wasm'),
+  backend: readPref<Backend>('freethaiocr.backend', 'wasm'),
   engine: 'idle',
   batch: null,
   selectedBox: null,
@@ -181,7 +181,7 @@ export const useApp = create<AppState>((set, get) => ({
     set({ mode, selectedBox: mode === 'pan' ? null : get().selectedBox })
   },
   setBackend(backend) {
-    writePref('thaiocr.backend', backend)
+    writePref('freethaiocr.backend', backend)
     set({ backend, engine: 'idle' })
   },
   setEngine(engine, extra) {

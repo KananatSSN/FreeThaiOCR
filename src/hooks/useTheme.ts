@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react'
 
 export type Theme = 'light' | 'dark'
-const KEY = 'thaiocr.theme'
+const KEY = 'freethaiocr.theme'
 const listeners = new Set<() => void>()
 const media = window.matchMedia('(prefers-color-scheme: dark)')
 

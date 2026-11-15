@@ -44,12 +44,14 @@ test('folder: lists supported files in natural order, OCR all, ZIP of searchable
   expect(names.map((n) => n.split('\n')[0].trim())).toEqual(['scan-2.pdf', 'scan-10.pdf', 'title.png'])
   await expect(page.getByRole('button', { name: /^batch\/reports\// })).toBeVisible()
 
-  await page.getByRole('button', { name: 'OCR all files' }).click()
+  // The "Added 3 files" toast offers to read them all right away.
+  await page.getByRole('region', { name: /Notifications/ }).getByRole('button', { name: 'OCR all files' }).click()
   await expect(page.locator('li [aria-label="done"]')).toHaveCount(3, { timeout: 110_000 })
+  await expect(page.getByRole('button', { name: 'All files read' })).toBeVisible()
   await page.screenshot({ path: 'test-results/batch-done.png' })
 
   const zip = await exportVia(page, 'Searchable PDFs')
-  expect(zip.name).toBe('batch-thaiocr.zip')
+  expect(zip.name).toBe('batch-freethaiocr.zip')
   const entries = unzipSync(zip.data)
   expect(Object.keys(entries).sort()).toEqual(['batch/reports/scan-10-searchable.pdf', 'batch/reports/scan-2-searchable.pdf', 'batch/title-searchable.pdf'])
   expect((await pdfPages(entries['batch/reports/scan-2-searchable.pdf']))[0]).toContain('ประกาศเรื่องการปรับปรุงระบบบริการออนไลน์')
@@ -71,7 +73,17 @@ test('export of one file OCRs its missing pages first', async ({ page }) => {
   await expect(page.locator('textarea').first()).toHaveValue(/ประกาศเรื่อง/)
 })
 
-test('cancelling an export downloads nothing and keeps finished pages', async ({ page }) => {
+test.describe('cancel', () => {
+  // Route model downloads ourselves (a service worker would bypass context.route).
+  test.use({ serviceWorkers: 'block' })
+
+test('cancelling an export downloads nothing and keeps finished pages', async ({ page, context }) => {
+  // Hold the model download so the batch is guaranteed to still be running when
+  // Cancel is pressed (otherwise three small files can finish first under load).
+  await context.route(/\/models\/.*\.onnx$/, async (route) => {
+    await new Promise((r) => setTimeout(r, 3000))
+    await route.continue()
+  })
   await openFolder(page)
   let downloaded = false
   page.on('download', () => (downloaded = true))
@@ -83,7 +95,8 @@ test('cancelling an export downloads nothing and keeps finished pages', async ({
   expect(downloaded).toBe(false)
   // The app is usable again: Export is enabled and the OCR-all button is back.
   await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled()
-  await expect(page.getByRole('button', { name: 'OCR all files' })).toBeVisible()
+  await expect(page.getByRole('button', { name: /^OCR all files \d+$/ })).toBeEnabled()
+})
 })
 
 test('folders fold like an accordion and keep their progress visible', async ({ page }) => {
@@ -99,8 +112,11 @@ test('folders fold like an accordion and keep their progress visible', async ({ 
   await expect(page.getByRole('button', { name: /title\.png \d+\/\d+/ })).toBeVisible() // other folder untouched
   await page.screenshot({ path: 'test-results/folders-folded.png', clip: { x: 0, y: 0, width: 420, height: 320 } })
 
-  // Folded folders still show progress as their files get read.
-  await page.getByRole('button', { name: 'OCR all files' }).click()
+  // Folded folders still show progress as their files get read (started from the toolbar).
+  const toolbarAll = page.getByRole('button', { name: /^OCR all files 3$/ })
+  await expect(toolbarAll).toBeVisible()
+  await page.screenshot({ path: 'test-results/toolbar-ocr-all.png', clip: { x: 0, y: 0, width: 900, height: 120 } })
+  await toolbarAll.click()
   await expect(reports).toContainText('2/2', { timeout: 110_000 })
 
   await reports.click()
@@ -123,4 +139,17 @@ test('folders fold like an accordion and keep their progress visible', async ({ 
   await page.getByRole('button', { name: 'Remove scan-10.pdf' }).click()
   await expect(batchFolder).toHaveAttribute('aria-expanded', 'true')
   await expect(page.getByRole('button', { name: /title\.png \d+\/\d+/ })).toHaveAttribute('aria-current', 'true')
+})
+
+test('protected (encrypted) PDF: searchable export is refused with a reason, TXT still works', async ({ page }) => {
+  await page.goto('/?lng=en')
+  await page.getByTestId('pick-files').first().setInputFiles(path.join(import.meta.dirname, '..', 'fixtures', 'encrypted', 'protected.pdf'))
+  let downloads = 0
+  page.on('download', () => downloads++)
+  await page.getByRole('button', { name: 'Export' }).click()
+  await page.getByRole('menuitem', { name: 'Searchable PDF', exact: true }).click()
+  await expect(page.getByText(/protected\.pdf is a protected \(encrypted\) PDF/)).toBeVisible({ timeout: 90_000 })
+  expect(downloads).toBe(0)
+  const txt = await exportVia(page, 'Text file (.txt)')
+  expect(new TextDecoder().decode(txt.data)).toContain('ประกาศเรื่อง')
 })

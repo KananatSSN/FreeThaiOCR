@@ -23,7 +23,7 @@ function QrCard() {
     <div className="flex flex-col items-center gap-3">
       <img src={QR_IMAGE} alt={t('donate.promptpay')} className="max-h-[52dvh] w-auto rounded-xl border bg-white object-contain" />
       <Button asChild variant="outline" size="sm">
-        <a href={QR_IMAGE} download="ThaiOCR-PromptPay.jpg">
+        <a href={QR_IMAGE} download="FreeThaiOCR-PromptPay.jpg">
           <Download /> {t('donate.save')}
         </a>
       </Button>

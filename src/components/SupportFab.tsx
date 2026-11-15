@@ -9,6 +9,20 @@ const REPO_URL = import.meta.env.VITE_REPO_URL?.trim()
 const MODEL_URL = 'https://huggingface.co/iapp/OpenThai2.0-OCR-Text'
 const RADIUS = 96 // px from the button's centre to each item's centre
 
+// Motion: items swing out along the arc with a soft spring, and tuck back in
+// quicker, in reverse order. Durations in ms.
+const OPEN_MS = 420
+const CLOSE_MS = 220
+const STAGGER_OPEN = 45
+const STAGGER_CLOSE = 30
+const SPRING = 'cubic-bezier(0.34, 1.36, 0.64, 1)' // slight overshoot, settles softly
+const TUCK = 'cubic-bezier(0.4, 0, 1, 1)' // accelerate away
+// Items start folded at the middle of the fan (45°) and spread out to their
+// places, so no path ever swings below or right of the button (off-screen).
+const FOLD_ANGLE = 45
+
+const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 function GitHubMark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 16 16" aria-hidden="true" className={className} fill="currentColor">
@@ -25,6 +39,15 @@ interface Item {
   onSelect?: () => void
 }
 
+function useItems(setDonate: (open: boolean) => void): Item[] {
+  const { t } = useTranslation()
+  const items: Item[] = []
+  if (donationsEnabled) items.push({ key: 'donate', label: t('fab.donate'), icon: <HandHeart className="size-5 text-rose-600 dark:text-rose-400" />, onSelect: () => setDonate(true) })
+  if (REPO_URL) items.push({ key: 'github', label: t('fab.github'), icon: <GitHubMark className="size-5" />, href: REPO_URL })
+  items.push({ key: 'model', label: t('fab.model'), icon: <span className="text-xl leading-none" aria-hidden="true">🤗</span>, href: MODEL_URL })
+  return items
+}
+
 /**
  * Floating button (bottom right) that opens a wheel of links: support the
  * developer, the GitHub repo and the OpenThai model on Hugging Face.
@@ -33,23 +56,20 @@ export function SupportFab({ className }: { className?: string }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [donate, setDonate] = useState(false)
-  // Labels appear once the items finish sliding out: tooltips are positioned
-  // when they open and don't follow CSS transform animations.
+  const items = useItems(setDonate)
+  const reduced = prefersReducedMotion()
+  // Labels appear once the items have settled: tooltips are positioned when
+  // they open and don't follow CSS transform animations.
   const [labels, setLabels] = useState(false)
   useEffect(() => {
     if (!open) return
-    const id = setTimeout(() => setLabels(true), 260)
+    const id = setTimeout(() => setLabels(true), reduced ? 120 : OPEN_MS + STAGGER_OPEN * (items.length - 1))
     return () => {
       clearTimeout(id)
       setLabels(false)
     }
-  }, [open])
+  }, [open, reduced, items.length])
   const root = useRef<HTMLDivElement>(null)
-
-  const items: Item[] = []
-  if (donationsEnabled) items.push({ key: 'donate', label: t('fab.donate'), icon: <HandHeart className="size-5 text-rose-600 dark:text-rose-400" />, onSelect: () => setDonate(true) })
-  if (REPO_URL) items.push({ key: 'github', label: t('fab.github'), icon: <GitHubMark className="size-5" />, href: REPO_URL })
-  items.push({ key: 'model', label: t('fab.model'), icon: <span className="text-xl leading-none" aria-hidden="true">🤗</span>, href: MODEL_URL })
 
   // Close on Escape or a click/tap anywhere outside the wheel.
   useEffect(() => {
@@ -71,16 +91,23 @@ export function SupportFab({ className }: { className?: string }) {
     <>
       <div ref={root} className={cn('fixed right-4 bottom-4 z-40 size-14', className)}>
         {items.map((item, i) => {
-          const a = (angleOf(i) * Math.PI) / 180
-          const x = Math.cos(a) * RADIUS
-          const y = -Math.sin(a) * RADIUS
+          // rotate(a) translateX(-r) rotate(-a): a point at distance r on the arc
+          // (a = 0 straight left, 90 straight up), kept upright. Animating a and r
+          // together moves the item along a curve rather than a straight line.
+          const a = 180 - angleOf(i)
+          const placed = `rotate(${a}deg) translateX(${-RADIUS}px) rotate(${-a}deg) scale(1)`
+          const tucked = reduced ? placed : `rotate(${FOLD_ANGLE}deg) translateX(0px) rotate(${-FOLD_ANGLE}deg) scale(0.3)`
+          const delay = open ? i * STAGGER_OPEN : (items.length - 1 - i) * STAGGER_CLOSE
           const itemClass = cn(
-            'absolute top-1 left-1 flex size-12 items-center justify-center rounded-full border bg-background shadow-lg outline-none transition-all duration-200 ease-out hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50',
-            !open && 'pointer-events-none opacity-0',
+            'absolute top-1 left-1 flex size-12 items-center justify-center rounded-full border bg-background shadow-lg outline-none will-change-[transform,opacity] hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50',
+            !open && 'pointer-events-none',
           )
           const style = {
-            transform: open ? `translate(${x}px, ${y}px) scale(1)` : 'translate(0, 0) scale(0.4)',
-            transitionDelay: open ? `${i * 40}ms` : '0ms',
+            transform: open ? placed : tucked,
+            opacity: open ? 1 : 0,
+            transition: open
+              ? `transform ${OPEN_MS}ms ${SPRING} ${delay}ms, opacity 180ms ease-out ${delay}ms`
+              : `transform ${CLOSE_MS}ms ${TUCK} ${delay}ms, opacity 160ms ease-in ${delay + 60}ms`,
           }
           const common = { className: itemClass, style, 'aria-label': item.label, tabIndex: open ? 0 : -1, 'aria-hidden': !open }
           return (
@@ -118,8 +145,8 @@ export function SupportFab({ className }: { className?: string }) {
           title={open ? undefined : t('fab.open')}
           className="relative flex size-14 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-xl outline-none transition-transform hover:scale-105 focus-visible:ring-3 focus-visible:ring-ring/50 active:scale-95"
         >
-          <MessageCircleHeart className={cn('absolute size-6 transition-all duration-200', open ? 'scale-50 rotate-90 opacity-0' : 'opacity-100')} />
-          <X className={cn('absolute size-6 transition-all duration-200', open ? 'opacity-100' : 'scale-50 -rotate-90 opacity-0')} />
+          <MessageCircleHeart className={cn('absolute size-6 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.34,1.36,0.64,1)] motion-reduce:transition-opacity', open ? 'scale-50 rotate-90 opacity-0' : 'opacity-100')} />
+          <X className={cn('absolute size-6 transition-[transform,opacity] duration-300 ease-[cubic-bezier(0.34,1.36,0.64,1)] motion-reduce:transition-opacity', open ? 'opacity-100' : 'scale-50 -rotate-90 opacity-0')} />
         </button>
       </div>
       <DonateDialog open={donate} onOpenChange={setDonate} />

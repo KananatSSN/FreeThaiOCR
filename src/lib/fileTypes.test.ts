@@ -46,9 +46,17 @@ describe('fileTypes', () => {
     expect(zipPath('b.tar.gz', '.txt', used)).toBe('b.tar.txt')
   })
 
+  it('never lets a ZIP entry escape its folder', () => {
+    const used = new Set<string>()
+    expect(zipPath('../../etc/passwd.pdf', '.txt', used)).toBe('etc/passwd.txt')
+    expect(zipPath('C:\\Users\\x\\..\\a.pdf', '.txt', used)).toBe('Users/x/a.txt')
+    expect(zipPath('./a/./b\u0000.pdf', '.txt', used)).toBe('a/b.txt')
+    expect(zipName(['../x/a.pdf'])).toBe('freethaiocr-export.zip')
+  })
+
   it('names the ZIP after a common folder', () => {
-    expect(zipName(['reports/a.pdf', 'reports/sub/b.pdf'])).toBe('reports-thaiocr.zip')
-    expect(zipName(['a.pdf', 'reports/b.pdf'])).toBe('thaiocr-export.zip')
-    expect(zipName(['a.pdf'])).toBe('thaiocr-export.zip')
+    expect(zipName(['reports/a.pdf', 'reports/sub/b.pdf'])).toBe('reports-freethaiocr.zip')
+    expect(zipName(['a.pdf', 'reports/b.pdf'])).toBe('freethaiocr-export.zip')
+    expect(zipName(['a.pdf'])).toBe('freethaiocr-export.zip')
   })
 })
