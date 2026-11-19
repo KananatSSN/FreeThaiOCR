@@ -38,7 +38,13 @@ describe('AksonOCR-Lite port matches the reference', () => {
           const got = await engine.page(img, mode === 'doc')
           expect(got.rotation, `${mode} rotation`).toBe(w.rotation)
           expect(got.lines.length, `${mode} lines`).toBe(w.lines.length)
-          got.lines.forEach((l, i) => expect(iou(l.poly as P[], w.lines[i].poly), `${mode} line ${i} box`).toBeGreaterThan(0.9))
+          // A line with the same text may overlap down to 0.8: short words shift a pixel or two between
+          // machines (ONNX Runtime's ARM vs x86 kernels), e.g. a table header cell on CI's x86.
+          const boxDiffs = got.lines
+            .map((l, i) => ({ i, l, v: iou(l.poly as P[], w.lines[i].poly) }))
+            .filter(({ i, l, v }) => !(v > 0.9 || (v > 0.8 && l.text === w.lines[i].text)))
+            .map(({ i, l, v }) => `${mode} line ${i} ${l.text} / ${w.lines[i].text}: overlap ${v.toFixed(3)}`)
+          expect(boxDiffs).toEqual([])
           expect(cer(w.text, got.text), `${mode} text:\n${got.text}`).toBeLessThanOrEqual(0.002)
           expect(cer(w.markdown, got.markdown), `${mode} markdown:\n${got.markdown}`).toBeLessThanOrEqual(0.005)
           expect(got.blocks.map((b) => b.label), `${mode} block labels`).toEqual(w.blocks.map((b) => b.label))
