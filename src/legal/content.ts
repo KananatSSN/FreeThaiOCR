@@ -162,7 +162,7 @@ export function terms(lang: 'th' | 'en', v: LegalVars): LegalDoc {
         {
           heading: 'โอเพนซอร์สและสัญญาอนุญาต',
           body: [
-            `ซอร์สโค้ดของ FreeThaiOCR ใช้สัญญาอนุญาต Apache License 2.0${v.repoUrl ? ` ([ดูซอร์สโค้ด](${v.repoUrl}))` : ''} โมเดล OpenThai 2.0 OCR Text เป็นของ iApp Technology ภายใต้ Apache License 2.0 และซอฟต์แวร์อื่นที่ใช้มีสัญญาอนุญาตของตนเอง ดู[รายการสัญญาอนุญาตทั้งหมด](${licenses})`,
+            `ซอร์สโค้ดของ FreeThaiOCR ใช้สัญญาอนุญาต Apache License 2.0${v.repoUrl ? ` ([ดูซอร์สโค้ด](${v.repoUrl}))` : ''} โมเดล OpenThai 2.1 OCR Text เป็นของ iApp Technology และโมเดล AksonOCR-Lite (เครื่องมือ OCR ทางเลือก) เป็นของ Teetouch Jaknamon (Remtir) ทั้งสองใช้สัญญาอนุญาต Apache License 2.0 และซอฟต์แวร์อื่นที่ใช้มีสัญญาอนุญาตของตนเอง ดู[รายการสัญญาอนุญาตทั้งหมด](${licenses})`,
           ],
         },
         {
@@ -193,7 +193,7 @@ export function terms(lang: 'th' | 'en', v: LegalVars): LegalDoc {
       {
         heading: 'Open source and licenses',
         body: [
-          `FreeThaiOCR’s source code is licensed under the Apache License 2.0${v.repoUrl ? ` ([view the source](${v.repoUrl}))` : ''}. The OpenThai 2.0 OCR Text model is by iApp Technology, under the Apache License 2.0. Other included software is used under its own license; see the [full list of licenses](${licenses}).`,
+          `FreeThaiOCR’s source code is licensed under the Apache License 2.0${v.repoUrl ? ` ([view the source](${v.repoUrl}))` : ''}. The OpenThai 2.1 OCR Text model is by iApp Technology and the optional AksonOCR-Lite engine is by Teetouch Jaknamon (Remtir), both under the Apache License 2.0. Other included software is used under its own license; see the [full list of licenses](${licenses}).`,
         ],
       },
       {

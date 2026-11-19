@@ -1,4 +1,4 @@
-// Exports: plain text, JSON (lines + boxes + confidence), and a searchable PDF
+// Exports: plain text, Markdown, JSON (lines + boxes + confidence), and a searchable PDF
 // (the original pages with an invisible, selectable text layer on top).
 import fontkit from '@pdf-lib/fontkit'
 import {
@@ -23,10 +23,11 @@ import type { OcrLine } from '@/ocr/engine'
 import { type FileEntry, getFile, type PageState, pageText, useApp } from '@/state/store'
 import { type LoadedDoc, openDoc, pdfPointMapper } from './documents'
 import { basename, zipName, zipPath } from './fileTypes'
+import { markdownToText } from './markdown'
 import { completeFiles } from './ocrService'
 
-export type ExportKind = 'txt' | 'json' | 'pdf'
-const SUFFIX: Record<ExportKind, string> = { txt: '.txt', json: '.json', pdf: '-searchable.pdf' }
+export type ExportKind = 'txt' | 'md' | 'json' | 'pdf'
+const SUFFIX: Record<ExportKind, string> = { txt: '.txt', md: '.md', json: '.json', pdf: '-searchable.pdf' }
 
 export function download(blob: Blob, filename: string) {
   const url = URL.createObjectURL(blob)
@@ -39,25 +40,35 @@ export function download(blob: Blob, filename: string) {
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
 }
 
+/** A page as plain text (user edits included): document-mode Markdown is flattened. */
+export const plainText = (p: PageState) => (p.result?.markdown !== undefined ? markdownToText(pageText(p)) : pageText(p))
+
 /** All page texts (user edits included), with page markers for multi-page files. */
 export function allText(pages: PageState[]): string {
-  if (pages.length === 1) return pageText(pages[0])
-  return pages.map((p, i) => `--- ${i + 1} ---\n${pageText(p)}`).join('\n\n')
+  if (pages.length === 1) return plainText(pages[0])
+  return pages.map((p, i) => `--- ${i + 1} ---\n${plainText(p)}`).join('\n\n')
 }
 
 const buildTxt = (e: FileEntry) => new Blob([allText(e.pages)], { type: 'text/plain;charset=utf-8' })
 
+/** Markdown: document-mode pages as read (or edited), other pages as paragraphs; pages split by rules. */
+const buildMd = (e: FileEntry) => new Blob([e.pages.map((p) => pageText(p)).join('\n\n---\n\n') + '\n'], { type: 'text/markdown;charset=utf-8' })
+
+const ENGINE_NAMES = { openthai: 'OpenThai2.1-OCR-Text-20261118', akson: 'AksonOCR-Lite (fp16)' } as const
+
 function buildJson(e: FileEntry): Blob {
   const data = {
     file: e.path,
-    generator: 'FreeThaiOCR (OpenThai2.0-OCR-Text)',
+    generator: 'FreeThaiOCR',
     created: new Date().toISOString(),
     pages: e.pages.map((p, i) => ({
       page: i + 1,
       width: e.meta?.sizes[i].width,
       height: e.meta?.sizes[i].height,
       source: p.result?.source ?? null,
-      text: pageText(p),
+      engine: p.result?.engine ? ENGINE_NAMES[p.result.engine] : null,
+      text: plainText(p),
+      ...(p.result?.markdown !== undefined ? { markdown: pageText(p) } : {}),
       edited: p.edited !== undefined,
       lines: p.result?.lines.map(({ text, confidence, box, words }) => ({ text, confidence, box, words })) ?? [],
       regions: p.boxes.map((b) => ({
@@ -73,6 +84,7 @@ function buildJson(e: FileEntry): Blob {
 
 async function build(e: FileEntry, kind: ExportKind): Promise<Blob> {
   if (kind === 'txt') return buildTxt(e)
+  if (kind === 'md') return buildMd(e)
   if (kind === 'json') return buildJson(e)
   return buildSearchablePdf(e)
 }

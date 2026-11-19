@@ -16,7 +16,7 @@
     "local": "Private: OCR runs on your device",
     "box": "Draw boxes to read just part of a page",
     "pdf": "Multi-page PDFs, with embedded text used when present",
-    "export": "Copy, or export TXT, JSON or a searchable PDF"
+    "export": "Copy, or export TXT, Markdown, JSON or a searchable PDF"
   },
   "toolbar": {
     "pan": "Move",
@@ -42,7 +42,10 @@
     "error": "The OCR engine failed to load: {{error}}",
     "gpu": "Use GPU (WebGPU)",
     "gpuHint": "Faster on some devices. Downloads an extra ~4 MB runtime.",
-    "gpuUnavailable": "WebGPU isn't available in this browser."
+    "gpuUnavailable": "WebGPU isn't available in this browser.",
+    "document": "Loading document mode…",
+    "documentFirstTime": "First time only: about 112 MB (layout and table models), cached for later and offline use.",
+    "aksonFirstTime": "First time only: about 22 MB, cached for later and offline use."
   },
   "results": {
     "title": "Results",
@@ -65,7 +68,9 @@
     "box": "Box {{n}}",
     "rotated": "Page was read rotated {{deg}}°",
     "clearBoxes": "Delete all boxes",
-    "show": "Show results"
+    "show": "Show results",
+    "markdown": "Markdown",
+    "markdownHint": "Read in document mode: headings, paragraphs and tables (HTML) in Markdown"
   },
   "export": {
     "menu": "Export",
@@ -86,7 +91,9 @@
     "done": "Export saved",
     "cancelled": "Export cancelled",
     "failed": "Export failed: {{error}}",
-    "encrypted": "{{name}} is a protected (encrypted) PDF, so a searchable copy can’t be made. Text and JSON exports still work."
+    "encrypted": "{{name}} is a protected (encrypted) PDF, so a searchable copy can’t be made. Text and JSON exports still work.",
+    "md": "Markdown (.md)",
+    "zipMd": "Markdown files (.md)"
   },
   "donate": {
     "title": "Support FreeThaiOCR",
@@ -103,9 +110,10 @@
     "title": "About FreeThaiOCR",
     "body": "FreeThaiOCR reads printed Thai and English text. Everything, including the OCR models, runs in your browser. Nothing is uploaded.",
     "limits": "Works best on printed documents. Handwriting, photos of signs and decorative fonts read poorly.",
-    "model": "OCR model: OpenThai 2.0 OCR Text by iApp Technology (Apache-2.0), based on PaddleOCR PP-OCRv6 (Apache-2.0).",
+    "model": "OCR model: OpenThai 2.1 OCR Text by iApp Technology (Apache-2.0), based on PaddleOCR PP-OCRv6 (Apache-2.0).",
     "license": "FreeThaiOCR is open source under the Apache-2.0 license.",
-    "source": "Source code"
+    "source": "Source code",
+    "akson": "Optional engine: AksonOCR-Lite by Teetouch Jaknamon (Remtir), Apache-2.0, run as a 16-bit copy. It builds on PaddlePaddle models (Apache-2.0) and Microsoft Table Transformer (MIT)."
   },
   "theme": {
     "toggle": "Toggle dark mode"
@@ -139,7 +147,8 @@
     "close": "Close",
     "donate": "Support the developer",
     "github": "Source code on GitHub",
-    "model": "OpenThai model on Hugging Face"
+    "model": "OpenThai model on Hugging Face",
+    "aksonModel": "AksonOCR-Lite model on Hugging Face"
   },
   "legal": {
     "privacy": "Privacy policy",
@@ -147,5 +156,23 @@
     "licenses": "Open-source licenses",
     "back": "Back to FreeThaiOCR",
     "nav": "Legal"
+  },
+  "settings": {
+    "title": "Settings",
+    "engine": "OCR engine",
+    "openthai": "OpenThai 2.1 (iApp)",
+    "openthaiHint": "Default. Small (~4 MB) and fast, good on phones.",
+    "akson": "AksonOCR-Lite",
+    "aksonHint": "Reads Thai as whole letter clusters. ~22 MB, slower.",
+    "document": "Document mode: layout and tables",
+    "documentHint": "Column order, headings and tables, as Markdown. +112 MB, best with a GPU.",
+    "documentUnavailable": "Document mode needs a computer with 8 GB of memory, or “Use GPU” switched on.",
+    "documentNeedsAkson": "Available with AksonOCR-Lite.",
+    "confirmAksonTitle": "Switch to AksonOCR-Lite?",
+    "confirmAkson": "The first time, about 22 MB of model files download to your browser and stay cached. Your files still never leave your device.",
+    "confirmDocumentTitle": "Turn on document mode?",
+    "confirmDocument": "Document mode downloads about 112 MB of layout and table models the first time and can use close to 1 GB of memory without a GPU. Pages are then read as Markdown with headings and tables.",
+    "cancel": "Cancel",
+    "confirm": "Download and use"
   }
 }

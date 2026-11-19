@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: Apache-2.0
-// Derived from runtime/thai_norm.py and runtime/line_engine.py in iapp/OpenThai2.0-OCR-Text
-// (https://huggingface.co/iapp/OpenThai2.0-OCR-Text), Copyright (c) iApp Technology,
+// Derived from runtime/thai_norm.py and runtime/line_engine.py in iapp/OpenThai2.1-OCR-Text-20261118
+// (https://huggingface.co/iapp/OpenThai2.1-OCR-Text-20261118), Copyright (c) iApp Technology,
 // licensed under the Apache License 2.0. Ported to TypeScript and modified by the
 // FreeThaiOCR contributors. See NOTICE.
 // Port of runtime/thai_norm.py and the text helpers of runtime/line_engine.py
-// (OpenThai2.0-OCR-Text, Apache-2.0). Keep in step with the Python reference:
+// (OpenThai2.1-OCR-Text-20261118, Apache-2.0). Keep in step with the Python reference:
 // tests/parity checks this module against its output.
 
 // Legacy Thai glyph variants (shifted/lowered marks, tail-less ฐ ญ) -> standard code points.
@@ -93,3 +93,37 @@ export function invalidShare(text: string): number {
   })
   return thai ? bad / thai : 0
 }
+
+// --- 2.1 helpers ------------------------------------------------------------------
+
+/**
+ * Latin letters inside words that also hold Thai letters: "lละพลNSะทU" -> 4. A
+ * loopless Thai face read as Latin look-alikes; a Thai word next to an English
+ * one (separated by a space) does not count. (_mixed)
+ */
+export function mixedLatin(text: string): number {
+  let n = 0
+  for (const tok of text.split(/\s+/u)) {
+    if (![...tok].some((ch) => ch >= 'ก' && ch <= '๎')) continue
+    for (const ch of tok) if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z')) n++
+  }
+  return n
+}
+
+// Python's str.isdigit() over the recognizer's dictionary: decimal digits of any
+// script plus superscripts and circled digits.
+const IS_DIGIT = /[\p{Nd}¹²³①-⑨❶-❾➀-➈➊-➒]/u
+
+/** The digits of a reading, in order. (_digits) */
+export const digitsOf = (text: string) => [...text].filter((ch) => IS_DIGIT.test(ch)).join('')
+
+const MARK_OR_SPACE = /[ัิ-ฺ็-๎\s]/gu
+
+/** A reading without its above/below marks (sara am as its aa) and spaces. (_base) */
+export const baseLetters = (text: string) => text.replaceAll('ำ', 'า').replace(MARK_OR_SPACE, '')
+
+// Python's \d is any Unicode decimal digit.
+const DECIMAL_COMMA = /(?<![\p{Nd}.,])(\p{Nd}{1,3}(?:,\p{Nd}{3})*),(\p{Nd}{2})(?![\p{Nd}.,])/gu
+
+/** An amount whose last comma has exactly two digits after it gets a decimal point: "280,00" -> "280.00". */
+export const decimalComma = (text: string) => text.replace(DECIMAL_COMMA, '$1.$2')

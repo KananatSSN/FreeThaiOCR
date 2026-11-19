@@ -9,13 +9,16 @@ import { LineOCR } from '../../src/ocr/engine'
 import type { InferenceModel } from '../../src/ocr/model'
 
 export const root = path.resolve(__dirname, '..', '..')
-const modelDir = path.join(root, 'public', 'models', JSON.parse(readFileSync(path.join(root, 'models.json'), 'utf8')).revision.slice(0, 7))
+const manifest = JSON.parse(readFileSync(path.join(root, 'models.json'), 'utf8'))
+const folder = (key: string) => `${key}-${manifest[key].revision ? manifest[key].revision.slice(0, 7) : 'local'}`
+export const modelDir = (key = 'openthai') => path.join(root, 'public', 'models', folder(key))
 
-async function session(file: string): Promise<InferenceModel> {
-  const s = await ort.InferenceSession.create(path.join(modelDir, file), {
+export async function session(file: string, key = 'openthai'): Promise<InferenceModel> {
+  const s = await ort.InferenceSession.create(path.join(modelDir(key), file), {
     intraOpNumThreads: 1,
     interOpNumThreads: 1,
     graphOptimizationLevel: 'all',
+    logSeverityLevel: 3, // the converted models make ORT log unused-initializer warnings
   })
   const input = s.inputNames[0]
   return {
@@ -23,6 +26,10 @@ async function session(file: string): Promise<InferenceModel> {
       const out = await s.run({ [input]: new ort.Tensor('float32', data, dims) })
       const t = out[s.outputNames[0]]
       return { data: t.data as Float32Array, dims: t.dims }
+    },
+    async runAll(named) {
+      const out = await s.run(Object.fromEntries(Object.entries(named).map(([k, v]) => [k, new ort.Tensor('float32', v.data, v.dims)])))
+      return s.outputNames.map((n) => ({ data: out[n].data as Float32Array | Int32Array, dims: out[n].dims }))
     },
   }
 }
@@ -35,9 +42,10 @@ export function loadEngine() {
     const engine = new LineOCR(cv, {
       det: await session('det.onnx'),
       rec: await session('rec.onnx'),
-      recDict: readFileSync(path.join(modelDir, 'rec_dict.txt'), 'utf8'),
-      configJson: JSON.parse(readFileSync(path.join(modelDir, 'config.json'), 'utf8')),
-      detYml: readFileSync(path.join(modelDir, 'det.yml'), 'utf8'),
+      rec2: await session('rec2.onnx'),
+      recDict: readFileSync(path.join(modelDir(), 'rec_dict.txt'), 'utf8'),
+      configJson: JSON.parse(readFileSync(path.join(modelDir(), 'config.json'), 'utf8')),
+      detYml: readFileSync(path.join(modelDir(), 'det.yml'), 'utf8'),
     })
     return { engine, cv }
   })()
@@ -72,4 +80,24 @@ export function iou(a: P[], b: P[]): number {
   const ih = Math.max(0, Math.min(ay1, by1) - Math.max(ay0, by0))
   const inter = iw * ih
   return inter / ((ax1 - ax0) * (ay1 - ay0) + (bx1 - bx0) * (by1 - by0) - inter)
+}
+
+let akson: Promise<{ engine: import('../../src/ocr/akson/page').AksonOCR; cv: any }> | undefined
+/** The AksonOCR-Lite port with every model loaded (layout and table models included). */
+export function loadAkson() {
+  akson ??= (async () => {
+    const { cv } = await loadEngine()
+    const { AksonOCR } = await import('../../src/ocr/akson/page')
+    const s = (f: string) => session(f, 'akson')
+    const engine = new AksonOCR(cv, {
+      det: await s('det.onnx'),
+      rec: await s('rec.onnx'),
+      docOri: await s('doc_ori.onnx'),
+      lineOri: await s('textline_ori.onnx'),
+      charset: JSON.parse(readFileSync(path.join(modelDir('akson'), 'rec_charset.json'), 'utf8')),
+      loadLayout: async () => ({ layout: await s('layout.onnx'), tatr: await s('tatr.onnx') }),
+    })
+    return { engine, cv }
+  })()
+  return akson
 }

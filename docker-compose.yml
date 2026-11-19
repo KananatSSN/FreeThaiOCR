@@ -9,6 +9,7 @@ services:
         VITE_PROMPTPAY_ID: ${VITE_PROMPTPAY_ID:-}
         VITE_DONATE_URL: ${VITE_DONATE_URL:-}
         VITE_REPO_URL: ${VITE_REPO_URL:-}
+        VITE_CONTACT_EMAIL: ${VITE_CONTACT_EMAIL:-}
     image: freethaiocr-web
     restart: unless-stopped
     logging: &logging # error logs only (access logs are off); capped so they can't grow forever

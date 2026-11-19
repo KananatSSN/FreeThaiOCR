@@ -156,7 +156,7 @@ function fallbackText(p: Pkg & { author?: string }): string {
   return tpl ? `${note}\n\n${tpl(holder)}` : `(No license file in the package; licensed under ${p.license}.)`
 }
 
-export function buildLicensesText(root: string, modelDir: string): string {
+export function buildLicensesText(root: string, modelDir: string, aksonDir?: string): string {
   const pkgs = collectPackages(root)
   const read = (p: string) => (existsSync(p) ? readFileSync(p, 'utf8').trim() : '')
   const parts: string[] = [
@@ -168,11 +168,25 @@ export function buildLicensesText(root: string, modelDir: string): string {
     read(path.join(root, 'NOTICE')),
     '',
     rule(),
-    'OCR model: OpenThai2.0-OCR-Text (iApp Technology), Apache License 2.0',
-    'https://huggingface.co/iapp/OpenThai2.0-OCR-Text',
+    'OCR model: OpenThai2.1-OCR-Text-20261118 (iApp Technology), Apache License 2.0',
+    'https://huggingface.co/iapp/OpenThai2.1-OCR-Text-20261118',
     rule('-'),
     read(path.join(modelDir, 'NOTICE')),
     '',
+    ...(aksonDir
+      ? [
+          rule(),
+          'Optional OCR engine: AksonOCR-Lite (Teetouch Jaknamon / Remtir), Apache License 2.0,',
+          'served as a 16-bit (fp16) copy of its ONNX models. https://huggingface.co/Remtir/AksonOCR-Lite',
+          'Its table model derives from Microsoft Table Transformer, MIT License (text below).',
+          rule('-'),
+          read(path.join(aksonDir, 'NOTICE')),
+          '',
+          rule('-'),
+          TEMPLATES.MIT('Microsoft Corporation'),
+          '',
+        ]
+      : []),
     rule(),
     'Font: Sarabun (used in exported searchable PDFs), SIL Open Font License 1.1',
     rule('-'),

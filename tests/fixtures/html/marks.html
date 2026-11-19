@@ -1,0 +1,26 @@
+<!doctype html><meta charset="utf-8"><link rel="stylesheet" href="_base.css">
+<style>
+  /* Letterpress-style floating marks: the line without its upper marks, and above it the
+     band over the consonants (the marks alone) drawn 12px higher. */
+  body { font-size: 30px; padding: 60px 80px; }
+  .l { position: relative; height: 92px; white-space: nowrap; }
+  .l span { position: absolute; left: 0; top: 30px; line-height: 50px; }
+  .l .base { }
+  .l .top { clip-path: inset(0 0 32px 0); transform: translateY(-12px); }
+</style>
+<div id="lines"></div>
+<script>
+for (const t of [
+  'เมื่อครั้งก่อนบ้านเมืองยังไม่เจริญ ผู้คนต่างพึ่งพาอาศัยกัน',
+  'ชาวบ้านจะช่วยกันทำนาในหน้าฝนและเกี่ยวข้าวในหน้าหนาว',
+  'ครั้นถึงเทศกาลสงกรานต์ก็พากันไปทำบุญที่วัดใกล้บ้าน',
+  'ผู้ใหญ่ในหมู่บ้านได้เล่าเรื่องเก่าให้ลูกหลานฟังเสมอ',
+  'ทั้งเรื่องการสร้างวัด การขุดคลอง และการตั้งตลาดแห่งแรก',
+  'หนังสือเล่มนี้จึงได้รวบรวมเรื่องเหล่านั้นไว้ให้คนรุ่นหลัง',
+  'ได้อ่านและรู้จักความเป็นมาของบ้านเกิดของตนเองต่อไป',
+]) {
+  const d = document.createElement('div'); d.className = 'l'
+  d.innerHTML = `<span class="base">${t.replace(/[\u0E31\u0E34-\u0E37\u0E47-\u0E4E]/g, '')}</span><span class="top">${t}</span>`
+  document.getElementById('lines').append(d)
+}
+</script>

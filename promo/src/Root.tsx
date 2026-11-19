@@ -26,7 +26,7 @@ export const RemotionRoot: React.FC = () => {
             headline2: 'เป็น|*ข้อความ*',
             subtitle: 'OCR ภาษาไทย-อังกฤษ ฟรี ในเบราว์เซอร์',
             features: ['อ่านรูปภาพและ PDF', 'ถ่ายจากกล้องมือถือ', 'ลากกรอบ อ่านเฉพาะส่วน', 'ทั้งโฟลเดอร์ ในคลิกเดียว', 'ส่งออก TXT · PDF · ZIP', 'ไฟล์ไม่ถูกอัปโหลด'],
-            credit: 'UI สำหรับโมเดล **OpenThai 2.0 OCR Text** โดย iApp Technology',
+            credit: 'UI สำหรับโมเดล **OpenThai 2.1 OCR Text** โดย iApp Technology',
             url: 'github.com/KananatSSN/FreeThaiOCR',
           }}
         />

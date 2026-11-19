@@ -16,7 +16,7 @@
     "local": "เป็นส่วนตัว: OCR ทำงานบนเครื่องของคุณ",
     "box": "ลากกรอบเพื่ออ่านเฉพาะบางส่วนของหน้า",
     "pdf": "รองรับ PDF หลายหน้า และใช้ข้อความที่ฝังใน PDF เมื่อมี",
-    "export": "คัดลอก หรือส่งออกเป็น TXT, JSON หรือ PDF ที่ค้นหาข้อความได้"
+    "export": "คัดลอก หรือส่งออกเป็น TXT, Markdown, JSON หรือ PDF ที่ค้นหาข้อความได้"
   },
   "toolbar": {
     "pan": "เลื่อน",
@@ -42,7 +42,10 @@
     "error": "โหลดระบบ OCR ไม่สำเร็จ: {{error}}",
     "gpu": "ใช้ GPU (WebGPU)",
     "gpuHint": "เร็วขึ้นในบางอุปกรณ์ ต้องดาวน์โหลดเพิ่มประมาณ 4 MB",
-    "gpuUnavailable": "เบราว์เซอร์นี้ไม่รองรับ WebGPU"
+    "gpuUnavailable": "เบราว์เซอร์นี้ไม่รองรับ WebGPU",
+    "document": "กำลังโหลดโหมดเอกสาร…",
+    "documentFirstTime": "ครั้งแรกเท่านั้น: ประมาณ 112 MB (โมเดลเค้าโครงและตาราง) เก็บไว้ใช้ครั้งต่อไปและใช้แบบออฟไลน์ได้",
+    "aksonFirstTime": "ครั้งแรกเท่านั้น: ประมาณ 22 MB เก็บไว้ใช้ครั้งต่อไปและใช้แบบออฟไลน์ได้"
   },
   "results": {
     "title": "ผลลัพธ์",
@@ -65,7 +68,9 @@
     "box": "กรอบ {{n}}",
     "rotated": "หน้านี้ถูกหมุน {{deg}}° ก่อนอ่าน",
     "clearBoxes": "ลบกรอบทั้งหมด",
-    "show": "ดูผลลัพธ์"
+    "show": "ดูผลลัพธ์",
+    "markdown": "Markdown",
+    "markdownHint": "อ่านด้วยโหมดเอกสาร: หัวข้อ ย่อหน้า และตาราง (HTML) ในรูปแบบ Markdown"
   },
   "export": {
     "menu": "ส่งออก",
@@ -85,7 +90,9 @@
     "done": "บันทึกไฟล์แล้ว",
     "cancelled": "ยกเลิกการส่งออกแล้ว",
     "failed": "ส่งออกไม่สำเร็จ: {{error}}",
-    "encrypted": "{{name}} เป็น PDF ที่ถูกป้องกัน (เข้ารหัส) จึงสร้างสำเนาที่ค้นหาข้อความได้ไม่ได้ แต่ยังส่งออกเป็นข้อความหรือ JSON ได้"
+    "encrypted": "{{name}} เป็น PDF ที่ถูกป้องกัน (เข้ารหัส) จึงสร้างสำเนาที่ค้นหาข้อความได้ไม่ได้ แต่ยังส่งออกเป็นข้อความหรือ JSON ได้",
+    "md": "Markdown (.md)",
+    "zipMd": "ไฟล์ Markdown (.md)"
   },
   "donate": {
     "title": "สนับสนุน FreeThaiOCR",
@@ -102,9 +109,10 @@
     "title": "เกี่ยวกับ FreeThaiOCR",
     "body": "FreeThaiOCR อ่านข้อความภาษาไทยและอังกฤษที่พิมพ์ ทุกอย่างรวมถึงโมเดล OCR ทำงานในเบราว์เซอร์ ไม่มีการอัปโหลดไฟล์",
     "limits": "เหมาะกับเอกสารที่พิมพ์ ลายมือ ภาพถ่ายป้าย และฟอนต์ตกแต่งจะอ่านได้ไม่ดี",
-    "model": "โมเดล OCR: OpenThai 2.0 OCR Text โดย iApp Technology (Apache-2.0) พัฒนาจาก PaddleOCR PP-OCRv6 (Apache-2.0)",
+    "model": "โมเดล OCR: OpenThai 2.1 OCR Text โดย iApp Technology (Apache-2.0) พัฒนาจาก PaddleOCR PP-OCRv6 (Apache-2.0)",
     "license": "FreeThaiOCR เป็นโอเพนซอร์ส ภายใต้สัญญาอนุญาต Apache-2.0",
-    "source": "ซอร์สโค้ด"
+    "source": "ซอร์สโค้ด",
+    "akson": "เครื่องมือ OCR ทางเลือก: AksonOCR-Lite โดย Teetouch Jaknamon (Remtir) สัญญาอนุญาต Apache-2.0 ใช้งานในรูปแบบ 16 บิต พัฒนาจากโมเดลของ PaddlePaddle (Apache-2.0) และ Microsoft Table Transformer (MIT)"
   },
   "theme": {
     "toggle": "สลับโหมดมืด"
@@ -135,7 +143,8 @@
     "close": "ปิด",
     "donate": "สนับสนุนผู้พัฒนา",
     "github": "ซอร์สโค้ดบน GitHub",
-    "model": "โมเดล OpenThai บน Hugging Face"
+    "model": "โมเดล OpenThai บน Hugging Face",
+    "aksonModel": "โมเดล AksonOCR-Lite บน Hugging Face"
   },
   "legal": {
     "privacy": "นโยบายความเป็นส่วนตัว",
@@ -143,5 +152,23 @@
     "licenses": "สัญญาอนุญาตโอเพนซอร์ส",
     "back": "กลับไปที่ FreeThaiOCR",
     "nav": "ข้อมูลทางกฎหมาย"
+  },
+  "settings": {
+    "title": "การตั้งค่า",
+    "engine": "เครื่องมือ OCR",
+    "openthai": "OpenThai 2.1 (iApp)",
+    "openthaiHint": "ค่าเริ่มต้น ขนาดเล็ก (~4 MB) เร็ว เหมาะกับมือถือ",
+    "akson": "AksonOCR-Lite",
+    "aksonHint": "อ่านภาษาไทยทีละกลุ่มอักษร ~22 MB ช้ากว่า",
+    "document": "โหมดเอกสาร: เค้าโครงและตาราง",
+    "documentHint": "เรียงคอลัมน์ หัวข้อ และตาราง เป็น Markdown +112 MB ทำงานดีที่สุดเมื่อมี GPU",
+    "documentUnavailable": "โหมดเอกสารต้องใช้คอมพิวเตอร์ที่มีหน่วยความจำ 8 GB หรือเปิด “ใช้ GPU”",
+    "documentNeedsAkson": "ใช้ได้กับ AksonOCR-Lite",
+    "confirmAksonTitle": "เปลี่ยนไปใช้ AksonOCR-Lite?",
+    "confirmAkson": "ครั้งแรกจะดาวน์โหลดไฟล์โมเดลประมาณ 22 MB มาเก็บไว้ในเบราว์เซอร์ ไฟล์ของคุณยังคงไม่ออกจากอุปกรณ์ของคุณ",
+    "confirmDocumentTitle": "เปิดโหมดเอกสาร?",
+    "confirmDocument": "โหมดเอกสารจะดาวน์โหลดโมเดลเค้าโครงและตารางประมาณ 112 MB ในครั้งแรก และอาจใช้หน่วยความจำเกือบ 1 GB หากไม่มี GPU จากนั้นหน้าเอกสารจะถูกอ่านเป็น Markdown พร้อมหัวข้อและตาราง",
+    "cancel": "ยกเลิก",
+    "confirm": "ดาวน์โหลดและใช้งาน"
   }
 }

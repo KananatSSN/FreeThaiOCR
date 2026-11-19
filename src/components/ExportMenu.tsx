@@ -1,4 +1,4 @@
-import { Braces, ChevronDown, ClipboardCopy, Download, FileArchive, FileText, FileType } from 'lucide-react'
+import { Braces, ChevronDown, ClipboardCopy, Download, FileArchive, FileCode, FileText, FileType } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
@@ -8,7 +8,7 @@ import { fileName, getFile, useActiveFile, useApp } from '@/state/store'
 
 // pdf-lib, fflate and the font only load when an export is requested.
 const exporters = () => import('@/lib/exporters')
-type Kind = 'txt' | 'json' | 'pdf'
+type Kind = 'txt' | 'md' | 'json' | 'pdf'
 
 /** Pages above which the export toast warns that OCR will take a while. */
 const LONG_JOB_PAGES = 1000
@@ -74,6 +74,9 @@ export function ExportMenu() {
         <DropdownMenuItem onSelect={exportThis('txt')}>
           <FileText /> {t('export.txt')}
         </DropdownMenuItem>
+        <DropdownMenuItem onSelect={exportThis('md')}>
+          <FileCode /> {t('export.md')}
+        </DropdownMenuItem>
         <DropdownMenuItem onSelect={exportThis('json')}>
           <Braces /> {t('export.json')}
         </DropdownMenuItem>
@@ -86,6 +89,9 @@ export function ExportMenu() {
             <DropdownMenuLabel className="text-xs text-muted-foreground">{t('export.allFiles', { count: nFiles })}</DropdownMenuLabel>
             <DropdownMenuItem onSelect={exportAll('txt')}>
               <FileArchive /> {t('export.zipTxt')}
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={exportAll('md')}>
+              <FileArchive /> {t('export.zipMd')}
             </DropdownMenuItem>
             <DropdownMenuItem onSelect={exportAll('json')}>
               <FileArchive /> {t('export.zipJson')}

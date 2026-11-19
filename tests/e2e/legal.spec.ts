@@ -22,7 +22,7 @@ test('privacy policy and terms pages, licenses file and links', async ({ page, r
   const lic = await request.get('/licenses.txt')
   expect(lic.ok()).toBe(true)
   const text = await lic.text()
-  for (const s of ['FreeThaiOCR is licensed under the Apache License 2.0', 'OpenThai2.0-OCR-Text', 'onnxruntime-web@', 'Copyright (c) Microsoft Corporation', 'pdfjs-dist@', 'SIL Open Font License']) expect(text).toContain(s)
+  for (const s of ['FreeThaiOCR is licensed under the Apache License 2.0', 'OpenThai2.1-OCR-Text-20261118', 'AksonOCR-Lite', 'Table Transformer', 'onnxruntime-web@', 'Copyright (c) Microsoft Corporation', 'pdfjs-dist@', 'SIL Open Font License']) expect(text).toContain(s)
 
   // Landing page footer, and About links open in a new tab (work in progress is kept).
   await page.goto('/?lng=en')

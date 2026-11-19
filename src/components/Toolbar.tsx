@@ -1,14 +1,14 @@
-import { CheckCheck, ChevronLeft, ChevronRight, Files, Hand, Layers, ListChecks, Loader2, Maximize, ScanText, Settings2, SquareDashedMousePointer, ZoomIn, ZoomOut } from 'lucide-react'
+import { CheckCheck, ChevronLeft, ChevronRight, Files, Hand, Layers, ListChecks, Loader2, Maximize, ScanText, SquareDashedMousePointer, ZoomIn, ZoomOut } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
-import { DropdownMenu, DropdownMenuCheckboxItem, DropdownMenuContent, DropdownMenuLabel, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Separator } from '@/components/ui/separator'
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ocrAll, ocrAllFiles, ocrPage } from '@/lib/ocrService'
 import { type Mode, pagesDone, useActiveFile, useActivePage, useApp } from '@/state/store'
 import { BatchProgress } from './BatchProgress'
+import { SettingsMenu } from './SettingsMenu'
 import type { ViewerHandle } from './PageViewer'
 
 function Tip({ label, children }: { label: string; children: ReactNode }) {
@@ -20,8 +20,6 @@ function Tip({ label, children }: { label: string; children: ReactNode }) {
   )
 }
 
-const hasWebGpu = typeof navigator !== 'undefined' && 'gpu' in navigator
-
 export function Toolbar({ viewer, onOpenFiles }: { viewer: ViewerHandle | null; onOpenFiles?: () => void }) {
   const { t } = useTranslation()
   const file = useActiveFile()
@@ -29,7 +27,6 @@ export function Toolbar({ viewer, onOpenFiles }: { viewer: ViewerHandle | null; 
   const page = useActivePage()
   const mode = useApp((s) => s.mode)
   const batch = useApp((s) => s.batch)
-  const backend = useApp((s) => s.backend)
   const nFiles = useApp((s) => s.files.length)
   // Files that still have pages without text (still-loading files count too).
   const filesLeft = useApp((s) => s.files.filter((f) => f.status === 'loading' || (f.status === 'ready' && pagesDone(f) < f.pages.length)).length)
@@ -117,25 +114,7 @@ export function Toolbar({ viewer, onOpenFiles }: { viewer: ViewerHandle | null; 
             <ZoomIn />
           </Button>
         </Tip>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button size="icon-sm" variant="ghost" aria-label="Settings">
-              <Settings2 />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-64">
-            <DropdownMenuCheckboxItem
-              checked={backend === 'webgpu'}
-              disabled={!hasWebGpu}
-              onCheckedChange={(on) => useApp.getState().setBackend(on ? 'webgpu' : 'wasm')}
-            >
-              {t('engine.gpu')}
-            </DropdownMenuCheckboxItem>
-            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-              {hasWebGpu ? t('engine.gpuHint') : t('engine.gpuUnavailable')}
-            </DropdownMenuLabel>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <SettingsMenu />
       </div>
     </div>
   )

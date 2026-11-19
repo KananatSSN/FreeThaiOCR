@@ -30,3 +30,7 @@ playwright-report/
 
 # Personal files (donation QR): bundled into builds when present, never committed
 private/
+
+# Local fp16 AksonOCR-Lite conversion (scripts/akson-fp16), uploaded to Hugging Face, never committed
+.akson-fp16/
+.akson-fp16.src/

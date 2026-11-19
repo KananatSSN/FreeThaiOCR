@@ -6,6 +6,19 @@ export interface TensorOut {
   dims: readonly number[]
 }
 
+export interface TensorIn {
+  data: Float32Array
+  dims: number[]
+}
+
+/** Any output tensor (the layout model also returns int32 counts and masks). */
+export interface TensorAnyOut {
+  data: Float32Array | Int32Array
+  dims: readonly number[]
+}
+
 export interface InferenceModel {
   run(data: Float32Array, dims: number[]): Promise<TensorOut>
+  /** Named inputs -> every output, in the model's output order (models with several inputs or outputs). */
+  runAll(feeds: Record<string, TensorIn>): Promise<TensorAnyOut[]>
 }

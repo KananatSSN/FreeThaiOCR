@@ -8,3 +8,5 @@ playwright-report
 .env
 *.log
 promo
+.akson-fp16
+.akson-fp16.src

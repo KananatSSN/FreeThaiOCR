@@ -24,7 +24,13 @@ export function AboutDialog() {
           <p className="text-muted-foreground">{t('about.limits')}</p>
           <p>
             {t('about.model')}{' '}
-            <a className="underline underline-offset-4" href="https://huggingface.co/iapp/OpenThai2.0-OCR-Text" target="_blank" rel="noopener noreferrer">
+            <a className="underline underline-offset-4" href="https://huggingface.co/iapp/OpenThai2.1-OCR-Text-20261118" target="_blank" rel="noopener noreferrer">
+              Hugging Face
+            </a>
+          </p>
+          <p>
+            {t('about.akson')}{' '}
+            <a className="underline underline-offset-4" href="https://huggingface.co/Remtir/AksonOCR-Lite" target="_blank" rel="noopener noreferrer">
               Hugging Face
             </a>
           </p>

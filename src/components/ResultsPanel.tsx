@@ -84,6 +84,12 @@ function PageTab() {
           {r.source === 'pdf' ? <FileText /> : <ScanText />}
           {r.source === 'pdf' ? t('results.fromPdf') : t('results.fromOcr')}
         </Badge>
+        {r.engine && (
+          <Badge variant="outline" title={r.markdown !== undefined ? t('results.markdownHint') : undefined}>
+            {r.engine === 'akson' ? 'AksonOCR-Lite' : 'OpenThai 2.1'}
+            {r.markdown !== undefined && ` · ${t('results.markdown')}`}
+          </Badge>
+        )}
         {page.edited !== undefined && <Badge variant="secondary">{t('results.edited')}</Badge>}
         {!!r.rotation && (
           <Badge variant="outline" title={t('results.rotated', { deg: r.rotation })}>

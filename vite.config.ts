@@ -49,7 +49,7 @@ function privateDonationQr(): Plugin {
 /** Serves (dev) and emits (build) /licenses.txt: every shipped package's license and notice. */
 function thirdPartyLicenses(): Plugin {
   const root = import.meta.dirname
-  const text = () => buildLicensesText(root, path.join(root, 'public', 'models', models.revision.slice(0, 7)))
+  const text = () => buildLicensesText(root, path.join(root, 'public', 'models', `openthai-${models.openthai.revision.slice(0, 7)}`), path.join(root, 'public', 'models', `akson-${models.akson.revision ? models.akson.revision.slice(0, 7) : 'local'}`))
   return {
     name: 'third-party-licenses',
     configureServer(server) {

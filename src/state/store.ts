@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { OcrLine } from '@/ocr/engine'
-import type { Backend } from '@/ocr/worker'
+import type { Backend, EngineModel } from '@/ocr/worker'
 
 export type Status = 'idle' | 'running' | 'done' | 'error'
 export type ResultSource = 'ocr' | 'pdf'
@@ -12,6 +12,10 @@ export interface PageResult {
   lines: OcrLine[]
   /** Clockwise degrees the engine turned the page to read it. */
   rotation?: number
+  /** Which OCR engine read it (absent for embedded PDF text). */
+  engine?: EngineModel
+  /** Akson document mode: the page as Markdown; shown and edited in place of `text`. */
+  markdown?: string
 }
 
 export interface RegionBox {
@@ -80,8 +84,13 @@ interface AppState {
   current: number
   mode: Mode
   backend: Backend
+  engineModel: EngineModel
+  /** Akson document mode (layout + tables); only used with engineModel 'akson'. */
+  documentMode: boolean
   engine: EngineState
   engineStage?: string
+  /** Download progress of the current stage, 0..1 (null = unknown size). */
+  engineProgress?: number | null
   engineError?: string
   batch: BatchJob | null
   selectedBox: string | null
@@ -98,7 +107,9 @@ interface AppState {
   setCurrent(i: number): void
   setMode(m: Mode): void
   setBackend(b: Backend): void
-  setEngine(s: EngineState, extra?: { stage?: string; error?: string }): void
+  setEngineModel(m: EngineModel): void
+  setDocumentMode(on: boolean): void
+  setEngine(s: EngineState, extra?: { stage?: string; error?: string; progress?: number | null }): void
   patchPage(fileId: string, i: number, patch: Partial<PageState>): void
   addBox(fileId: string, i: number, rect: { x: number; y: number; w: number; h: number }): RegionBox
   patchBox(fileId: string, i: number, id: string, patch: Partial<RegionBox>): void
@@ -139,6 +150,8 @@ export const useApp = create<AppState>((set, get) => ({
   current: 0,
   mode: 'pan',
   backend: readPref<Backend>('freethaiocr.backend', 'wasm'),
+  engineModel: readPref<EngineModel>('freethaiocr.engine', 'openthai') === 'akson' ? 'akson' : 'openthai',
+  documentMode: readPref<string>('freethaiocr.documentMode', 'off') === 'on',
   engine: 'idle',
   batch: null,
   selectedBox: null,
@@ -180,12 +193,20 @@ export const useApp = create<AppState>((set, get) => ({
   setMode(mode) {
     set({ mode, selectedBox: mode === 'pan' ? null : get().selectedBox })
   },
+  setEngineModel(engineModel) {
+    writePref('freethaiocr.engine', engineModel)
+    set({ engineModel, engine: 'idle' })
+  },
+  setDocumentMode(on) {
+    writePref('freethaiocr.documentMode', on ? 'on' : 'off')
+    set({ documentMode: on })
+  },
   setBackend(backend) {
     writePref('freethaiocr.backend', backend)
     set({ backend, engine: 'idle' })
   },
   setEngine(engine, extra) {
-    set({ engine, engineStage: extra?.stage, engineError: extra?.error })
+    set({ engine, engineStage: extra?.stage, engineError: extra?.error, engineProgress: extra?.progress })
   },
   patchPage(fileId, i, patch) {
     set((s) => ({ files: mapPage(s.files, fileId, i, (p) => ({ ...p, ...patch })) }))
@@ -250,5 +271,6 @@ export function lineRange(p: PageState, i: number): [number, number] | null {
 }
 
 /** The text a page currently shows: the user's edit, else the result. */
-export const pageText = (p: PageState) => p.edited ?? p.result?.text ?? ''
+/** What the results panel shows and edits: the user's text, else the Markdown (document mode), else the text. */
+export const pageText = (p: PageState) => p.edited ?? p.result?.markdown ?? p.result?.text ?? ''
 export const boxText = (b: RegionBox) => b.edited ?? b.result?.text ?? ''

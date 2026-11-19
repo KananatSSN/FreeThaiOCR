@@ -1,12 +1,33 @@
 {
-  "repo": "iapp/OpenThai2.0-OCR-Text",
-  "revision": "40e8e9ff752b65153b1a71d521ec9390882afd7e",
-  "files": {
-    "det.onnx": "193bab7a04fca699a6c82e6abb5b81bdb28177f0abd4062552b04908dafb19f8",
-    "rec.onnx": "82ec89533346faadcb30df96703dad2dd7521de65709e60d83fd9745b8968124",
-    "rec_dict.txt": "259ef2636cec0eeae225ae9fd9a63fa9305285650c22d7ec34fe8a82b24c2f1a",
-    "config.json": "11599c0dae206381cb8ea11c1b7ce130b2e7971c19219f409785ee8c02ab5d94",
-    "det.yml": "3ac018be6f97499a08faa3bbdeb33640968d9307f6736d152902747a9f259593",
-    "NOTICE": "4c0e4f27877836de51e29aec3918b6c743c3028cd4163b6661fd540336db32b3"
+  "openthai": {
+    "repo": "iapp/OpenThai2.1-OCR-Text-20261118",
+    "revision": "c765cb8017c406ddc2a518de51db22bb2e2bbd07",
+    "version": "2.1.4",
+    "files": {
+      "det.onnx": "193bab7a04fca699a6c82e6abb5b81bdb28177f0abd4062552b04908dafb19f8",
+      "rec.onnx": "82ec89533346faadcb30df96703dad2dd7521de65709e60d83fd9745b8968124",
+      "rec2.onnx": "6ec0f96f5ade665fc7eb33a9800ed055bc220870cbf963cf97c4750e64cd27ce",
+      "rec_dict.txt": "259ef2636cec0eeae225ae9fd9a63fa9305285650c22d7ec34fe8a82b24c2f1a",
+      "config.json": "f5a38f5677784b10d4abcc2ad8a8b044826a8211bc51213b38c889ad792b417a",
+      "det.yml": "3ac018be6f97499a08faa3bbdeb33640968d9307f6736d152902747a9f259593",
+      "NOTICE": "4c0e4f27877836de51e29aec3918b6c743c3028cd4163b6661fd540336db32b3"
+    }
+  },
+  "akson": {
+    "repo": "KanaSSN/AksonOCR-Lite-web-fp16",
+    "revision": "59daab73c8ee9a7bf46c55d35933ee781942fc91",
+    "version": "AksonOCR-Lite@576fa7b fp16",
+    "source": "Remtir/AksonOCR-Lite@576fa7b148b628656eb6fb70917d3e8c488bab3d",
+    "files": {
+      "det.onnx": "f64cb51c505882f0a921e12bb6462548ac01552f5bdd9c5c2137b2c958cf0d84",
+      "rec.onnx": "80bccc07761322f6a79e4cb9197407d84aeaedc2cf8279544f634650c006d2f5",
+      "rec_charset.json": "f021d4a5f34d9434431feecd86c48b85d4a625d2fc5ff01e6d0f44e137fcd4c0",
+      "doc_ori.onnx": "0f57974f218827d5d352a7d507ce3e763616f38ce99a8202269d7daeb45ae202",
+      "textline_ori.onnx": "d6f87801462e35965fec41674107ca544bc597f227780881995de460ab939140",
+      "layout.onnx": "7e23486841860d805b964690d46ff457b7d5877605c08c7b0045bd436c6b2835",
+      "tatr.onnx": "5108aa45cd73df5f42b9402e21b42a4627caa71d0f81e0cd86268f3b710431a3",
+      "LICENSE": "c8b1046eea2bf2e2d4ebf0f643965ce0ba5cba920e77b90ecead07a41cde98c7",
+      "NOTICE": "b7803ccf7c706fb0cbc5a1c9244ab2bcbf53e1a89dd9012d76b85b6ffe216cde"
+    }
   }
 }

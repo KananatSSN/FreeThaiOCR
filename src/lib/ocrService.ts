@@ -3,9 +3,9 @@
 // Every job names its file, so results land in the right place even when the
 // user has moved on to another file.
 import * as Comlink from 'comlink'
-import type { OcrResult } from '@/ocr/engine'
-import type { InitStage, OcrWorkerApi, Rect } from '@/ocr/worker'
+import type { InitStage, OcrWorkerApi, Rect, RecognizeResult } from '@/ocr/worker'
 import { type BatchJob, type FileEntry, freshPages, getFile, pageDone, useApp } from '@/state/store'
+import { documentModeCapable } from './device'
 import { closeDoc, extractPdfText, openDoc, readMeta, renderPage, renderThumb } from './documents'
 import { fileKey, isPdf, triageFiles } from './fileTypes'
 
@@ -65,8 +65,9 @@ export async function ensureEngine(): Promise<void> {
   s.setEngine('loading', { stage: 'runtime' })
   try {
     await getWorker().init(
+      s.engineModel,
       s.backend,
-      Comlink.proxy((stage: InitStage) => app().setEngine(stage === 'ready' ? 'ready' : 'loading', { stage })),
+      Comlink.proxy((stage: InitStage, progress?: number | null) => app().setEngine(stage === 'ready' ? 'ready' : 'loading', { stage, progress })),
     )
     app().setEngine('ready')
   } catch (e) {
@@ -75,12 +76,39 @@ export async function ensureEngine(): Promise<void> {
   }
 }
 
-async function recognize(fileId: string, index: number, rect?: Rect): Promise<OcrResult> {
+/** Akson document mode is on (and offered on this device). */
+export const documentModeActive = () => app().engineModel === 'akson' && app().documentMode && documentModeCapable(app().backend)
+
+let documentReady = false
+/** Download the document-mode models before the first such page, showing progress. */
+async function ensureDocument(): Promise<void> {
+  if (documentReady) return
+  app().setEngine('loading', { stage: 'document', progress: null })
+  try {
+    await getWorker().prepareDocument(
+      app().backend,
+      Comlink.proxy((progress: number | null) => app().setEngine('loading', { stage: 'document', progress })),
+    )
+    documentReady = true
+    app().setEngine('ready')
+  } catch (e) {
+    app().setEngine('error', { error: errMsg(e) })
+    throw e
+  }
+}
+// The worker keeps one engine per (model, backend); switching either means loading again.
+useApp.subscribe((s, prev) => {
+  if (s.engineModel !== prev.engineModel || s.backend !== prev.backend) documentReady = false
+})
+
+async function recognize(fileId: string, index: number, rect?: Rect): Promise<RecognizeResult> {
   await ensureEngine()
+  const document = !rect && documentModeActive()
+  if (document) await ensureDocument()
   const bmp = await getPageBitmap(fileId, index)
   // Send a copy: the cached bitmap stays usable for display.
   const copy = await createImageBitmap(bmp)
-  return getWorker().recognize(app().backend, Comlink.transfer(copy, [copy]), rect)
+  return getWorker().recognize(app().engineModel, app().backend, Comlink.transfer(copy, [copy]), rect, document)
 }
 
 // --- adding and removing files --------------------------------------------------
@@ -203,7 +231,7 @@ export function ocrPage(fileId: string, index: number): Promise<void> {
       app().patchPage(fileId, index, {
         status: 'done',
         edited: undefined,
-        result: { source: 'ocr', text: r.text, lines: r.lines, rotation: r.rotation },
+        result: { source: 'ocr', text: r.text, lines: r.lines, rotation: r.rotation, engine: app().engineModel, markdown: r.markdown },
       })
     } catch (e) {
       if (fileById(fileId)) app().patchPage(fileId, index, { status: 'error', error: errMsg(e) })
@@ -222,7 +250,7 @@ export function ocrBox(fileId: string, index: number, id: string): Promise<void>
     if (!cur) return
     try {
       const r = await recognize(fileId, index, { x: cur.x, y: cur.y, w: cur.w, h: cur.h })
-      app().patchBox(fileId, index, id, { status: 'done', edited: undefined, result: { source: 'ocr', text: r.text, lines: r.lines } })
+      app().patchBox(fileId, index, id, { status: 'done', edited: undefined, result: { source: 'ocr', text: r.text, lines: r.lines, engine: app().engineModel } })
     } catch (e) {
       app().patchBox(fileId, index, id, { status: 'error', error: errMsg(e) })
     }

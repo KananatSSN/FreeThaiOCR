@@ -1,0 +1,618 @@
+{
+ "det": [
+  [
+   [
+    75.0,
+    81.0
+   ],
+   [
+    560.0,
+    79.0
+   ],
+   [
+    560.0,
+    118.0
+   ],
+   [
+    76.0,
+    120.0
+   ]
+  ],
+  [
+   [
+    76.0,
+    159.0
+   ],
+   [
+    1107.0,
+    159.0
+   ],
+   [
+    1107.0,
+    189.0
+   ],
+   [
+    76.0,
+    189.0
+   ]
+  ],
+  [
+   [
+    77.0,
+    201.0
+   ],
+   [
+    847.0,
+    201.0
+   ],
+   [
+    847.0,
+    228.0
+   ],
+   [
+    77.0,
+    228.0
+   ]
+  ],
+  [
+   [
+    76.0,
+    257.0
+   ],
+   [
+    1162.0,
+    257.0
+   ],
+   [
+    1162.0,
+    287.0
+   ],
+   [
+    76.0,
+    287.0
+   ]
+  ],
+  [
+   [
+    77.0,
+    299.0
+   ],
+   [
+    736.0,
+    299.0
+   ],
+   [
+    736.0,
+    327.0
+   ],
+   [
+    77.0,
+    327.0
+   ]
+  ],
+  [
+   [
+    75.0,
+    368.0
+   ],
+   [
+    258.0,
+    368.0
+   ],
+   [
+    258.0,
+    402.0
+   ],
+   [
+    75.0,
+    402.0
+   ]
+  ],
+  [
+   [
+    74.0,
+    425.0
+   ],
+   [
+    1084.0,
+    426.0
+   ],
+   [
+    1084.0,
+    456.0
+   ],
+   [
+    74.0,
+    455.0
+   ]
+  ],
+  [
+   [
+    75.0,
+    467.0
+   ],
+   [
+    446.0,
+    467.0
+   ],
+   [
+    446.0,
+    497.0
+   ],
+   [
+    75.0,
+    497.0
+   ]
+  ]
+ ],
+ "text": {
+  "rotation": 0,
+  "text": "Quarterly Maintenance Notice\nWe will upgrade the document archive on Saturday, 21 November, between 10:00 PM and 6:00 AM.\nDuring this window the search page and file downloads will be unavailable.\nAll existing records will be kept. After the upgrade, please sign in again and review your saved settings. If\nanything looks wrong, contact the help desk at extension 4512.\nWhat changes\nSearch results load about twice as fast, scanned pages can be rotated in the viewer, and exported\nreports now include page numbers.",
+  "markdown": "Quarterly Maintenance Notice\nWe will upgrade the document archive on Saturday, 21 November, between 10:00 PM and 6:00 AM.\nDuring this window the search page and file downloads will be unavailable.\nAll existing records will be kept. After the upgrade, please sign in again and review your saved settings. If\nanything looks wrong, contact the help desk at extension 4512.\nWhat changes\nSearch results load about twice as fast, scanned pages can be rotated in the viewer, and exported\nreports now include page numbers.",
+  "lines": [
+   {
+    "text": "Quarterly Maintenance Notice",
+    "confidence": 0.887,
+    "poly": [
+     [
+      75.0,
+      81.0
+     ],
+     [
+      560.0,
+      79.0
+     ],
+     [
+      560.0,
+      118.0
+     ],
+     [
+      76.0,
+      120.0
+     ]
+    ]
+   },
+   {
+    "text": "We will upgrade the document archive on Saturday, 21 November, between 10:00 PM and 6:00 AM.",
+    "confidence": 0.8853,
+    "poly": [
+     [
+      76.0,
+      159.0
+     ],
+     [
+      1107.0,
+      159.0
+     ],
+     [
+      1107.0,
+      189.0
+     ],
+     [
+      76.0,
+      189.0
+     ]
+    ]
+   },
+   {
+    "text": "During this window the search page and file downloads will be unavailable.",
+    "confidence": 0.157,
+    "poly": [
+     [
+      77.0,
+      201.0
+     ],
+     [
+      847.0,
+      201.0
+     ],
+     [
+      847.0,
+      228.0
+     ],
+     [
+      77.0,
+      228.0
+     ]
+    ]
+   },
+   {
+    "text": "All existing records will be kept. After the upgrade, please sign in again and review your saved settings. If",
+    "confidence": 0.3573,
+    "poly": [
+     [
+      76.0,
+      257.0
+     ],
+     [
+      1162.0,
+      257.0
+     ],
+     [
+      1162.0,
+      287.0
+     ],
+     [
+      76.0,
+      287.0
+     ]
+    ]
+   },
+   {
+    "text": "anything looks wrong, contact the help desk at extension 4512.",
+    "confidence": 0.8759,
+    "poly": [
+     [
+      77.0,
+      299.0
+     ],
+     [
+      736.0,
+      299.0
+     ],
+     [
+      736.0,
+      327.0
+     ],
+     [
+      77.0,
+      327.0
+     ]
+    ]
+   },
+   {
+    "text": "What changes",
+    "confidence": 0.9988,
+    "poly": [
+     [
+      75.0,
+      368.0
+     ],
+     [
+      258.0,
+      368.0
+     ],
+     [
+      258.0,
+      402.0
+     ],
+     [
+      75.0,
+      402.0
+     ]
+    ]
+   },
+   {
+    "text": "Search results load about twice as fast, scanned pages can be rotated in the viewer, and exported",
+    "confidence": 0.4089,
+    "poly": [
+     [
+      74.0,
+      425.0
+     ],
+     [
+      1084.0,
+      426.0
+     ],
+     [
+      1084.0,
+      456.0
+     ],
+     [
+      74.0,
+      455.0
+     ]
+    ]
+   },
+   {
+    "text": "reports now include page numbers.",
+    "confidence": 0.8301,
+    "poly": [
+     [
+      75.0,
+      467.0
+     ],
+     [
+      446.0,
+      467.0
+     ],
+     [
+      446.0,
+      497.0
+     ],
+     [
+      75.0,
+      497.0
+     ]
+    ]
+   }
+  ],
+  "blocks": [
+   {
+    "label": "text",
+    "bbox": [
+     0.0,
+     0.0,
+     1240.0,
+     1100.0
+    ],
+    "order": 0.0,
+    "text": "Quarterly Maintenance Notice\nWe will upgrade the document archive on Saturday, 21 November, between 10:00 PM and 6:00 AM.\nDuring this window the search page and file downloads will be unavailable.\nAll existing records will be kept. After the upgrade, please sign in again and review your saved settings. If\nanything looks wrong, contact the help desk at extension 4512.\nWhat changes\nSearch results load about twice as fast, scanned pages can be rotated in the viewer, and exported\nreports now include page numbers.",
+    "html": null,
+    "line_ids": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7
+    ]
+   }
+  ]
+ },
+ "doc": {
+  "rotation": 0,
+  "text": "Quarterly Maintenance Notice\n\nWe will upgrade the document archive on Saturday, 21 November, between 10:00 PM and 6:00 AM.\nDuring this window the search page and file downloads will be unavailable.\n\nAll existing records will be kept. After the upgrade, please sign in again and review your saved settings. If\nanything looks wrong, contact the help desk at extension 4512.\n\nWhat changes\n\nSearch results load about twice as fast, scanned pages can be rotated in the viewer, and exported\nreports now include page numbers.",
+  "markdown": "## Quarterly Maintenance Notice\nWe will upgrade the document archive on Saturday, 21 November, between 10:00 PM and 6:00 AM.\nDuring this window the search page and file downloads will be unavailable.\nAll existing records will be kept. After the upgrade, please sign in again and review your saved settings. If\nanything looks wrong, contact the help desk at extension 4512.\n## What changes\nSearch results load about twice as fast, scanned pages can be rotated in the viewer, and exported\nreports now include page numbers.",
+  "lines": [
+   {
+    "text": "Quarterly Maintenance Notice",
+    "confidence": 0.887,
+    "poly": [
+     [
+      75.0,
+      81.0
+     ],
+     [
+      560.0,
+      79.0
+     ],
+     [
+      560.0,
+      118.0
+     ],
+     [
+      76.0,
+      120.0
+     ]
+    ]
+   },
+   {
+    "text": "We will upgrade the document archive on Saturday, 21 November, between 10:00 PM and 6:00 AM.",
+    "confidence": 0.8853,
+    "poly": [
+     [
+      76.0,
+      159.0
+     ],
+     [
+      1107.0,
+      159.0
+     ],
+     [
+      1107.0,
+      189.0
+     ],
+     [
+      76.0,
+      189.0
+     ]
+    ]
+   },
+   {
+    "text": "During this window the search page and file downloads will be unavailable.",
+    "confidence": 0.157,
+    "poly": [
+     [
+      77.0,
+      201.0
+     ],
+     [
+      847.0,
+      201.0
+     ],
+     [
+      847.0,
+      228.0
+     ],
+     [
+      77.0,
+      228.0
+     ]
+    ]
+   },
+   {
+    "text": "All existing records will be kept. After the upgrade, please sign in again and review your saved settings. If",
+    "confidence": 0.3573,
+    "poly": [
+     [
+      76.0,
+      257.0
+     ],
+     [
+      1162.0,
+      257.0
+     ],
+     [
+      1162.0,
+      287.0
+     ],
+     [
+      76.0,
+      287.0
+     ]
+    ]
+   },
+   {
+    "text": "anything looks wrong, contact the help desk at extension 4512.",
+    "confidence": 0.8759,
+    "poly": [
+     [
+      77.0,
+      299.0
+     ],
+     [
+      736.0,
+      299.0
+     ],
+     [
+      736.0,
+      327.0
+     ],
+     [
+      77.0,
+      327.0
+     ]
+    ]
+   },
+   {
+    "text": "What changes",
+    "confidence": 0.9988,
+    "poly": [
+     [
+      75.0,
+      368.0
+     ],
+     [
+      258.0,
+      368.0
+     ],
+     [
+      258.0,
+      402.0
+     ],
+     [
+      75.0,
+      402.0
+     ]
+    ]
+   },
+   {
+    "text": "Search results load about twice as fast, scanned pages can be rotated in the viewer, and exported",
+    "confidence": 0.4089,
+    "poly": [
+     [
+      74.0,
+      425.0
+     ],
+     [
+      1084.0,
+      426.0
+     ],
+     [
+      1084.0,
+      456.0
+     ],
+     [
+      74.0,
+      455.0
+     ]
+    ]
+   },
+   {
+    "text": "reports now include page numbers.",
+    "confidence": 0.8301,
+    "poly": [
+     [
+      75.0,
+      467.0
+     ],
+     [
+      446.0,
+      467.0
+     ],
+     [
+      446.0,
+      497.0
+     ],
+     [
+      75.0,
+      497.0
+     ]
+    ]
+   }
+  ],
+  "blocks": [
+   {
+    "label": "paragraph_title",
+    "bbox": [
+     76.0,
+     83.0,
+     559.0,
+     121.0
+    ],
+    "order": 1,
+    "text": "Quarterly Maintenance Notice",
+    "html": null,
+    "line_ids": [
+     0
+    ]
+   },
+   {
+    "label": "text",
+    "bbox": [
+     75.0,
+     161.0,
+     1107.0,
+     232.0
+    ],
+    "order": 2,
+    "text": "We will upgrade the document archive on Saturday, 21 November, between 10:00 PM and 6:00 AM.\nDuring this window the search page and file downloads will be unavailable.",
+    "html": null,
+    "line_ids": [
+     1,
+     2
+    ]
+   },
+   {
+    "label": "text",
+    "bbox": [
+     75.0,
+     258.0,
+     1162.0,
+     330.0
+    ],
+    "order": 3,
+    "text": "All existing records will be kept. After the upgrade, please sign in again and review your saved settings. If\nanything looks wrong, contact the help desk at extension 4512.",
+    "html": null,
+    "line_ids": [
+     3,
+     4
+    ]
+   },
+   {
+    "label": "paragraph_title",
+    "bbox": [
+     76.0,
+     371.0,
+     258.0,
+     402.0
+    ],
+    "order": 4,
+    "text": "What changes",
+    "html": null,
+    "line_ids": [
+     5
+    ]
+   },
+   {
+    "label": "text",
+    "bbox": [
+     76.0,
+     428.0,
+     1084.0,
+     499.0
+    ],
+    "order": 5,
+    "text": "Search results load about twice as fast, scanned pages can be rotated in the viewer, and exported\nreports now include page numbers.",
+    "html": null,
+    "line_ids": [
+     6,
+     7
+    ]
+   }
+  ]
+ }
+}

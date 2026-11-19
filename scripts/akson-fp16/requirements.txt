@@ -1,0 +1,8 @@
+# Exact versions the published fp16 files were produced with (macOS arm64, Python 3.12).
+# Other versions may give byte-different (though equivalent) files; SHA256SUMS records ours.
+onnx==1.23.2
+onnxruntime==1.32.0
+onnxconverter-common==1.16.0
+numpy==2.5.5
+sympy==1.14.0
+protobuf==7.36.2

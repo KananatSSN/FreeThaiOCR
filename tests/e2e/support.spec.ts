@@ -18,9 +18,10 @@ test('support wheel: links and the donation QR', async ({ page }, info) => {
   await expect(page.getByRole('button', { name: 'ปิด' })).toHaveAttribute('aria-expanded', 'true')
 
   const model = page.getByRole('link', { name: 'โมเดล OpenThai บน Hugging Face' })
-  await expect(model).toHaveAttribute('href', 'https://huggingface.co/iapp/OpenThai2.0-OCR-Text')
+  await expect(model).toHaveAttribute('href', 'https://huggingface.co/iapp/OpenThai2.1-OCR-Text-20261118')
   await expect(model).toHaveAttribute('target', '_blank')
   // The GitHub item links to the configured repo, and stays hidden (rather than linking nowhere) without one.
+  await expect(page.getByRole('link', { name: 'โมเดล AksonOCR-Lite บน Hugging Face' })).toHaveAttribute('href', 'https://huggingface.co/Remtir/AksonOCR-Lite')
   const github = page.getByRole('link', { name: 'ซอร์สโค้ดบน GitHub' })
   if (repoUrl) await expect(github).toHaveAttribute('href', repoUrl)
   else await expect(github).toHaveCount(0)

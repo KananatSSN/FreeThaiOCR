@@ -6,7 +6,8 @@ import { cn } from 'cn'
 import { DonateDialog, donationsEnabled } from './DonateDialog'
 
 const REPO_URL = import.meta.env.VITE_REPO_URL?.trim()
-const MODEL_URL = 'https://huggingface.co/iapp/OpenThai2.0-OCR-Text'
+const MODEL_URL = 'https://huggingface.co/iapp/OpenThai2.1-OCR-Text-20261118'
+const AKSON_URL = 'https://huggingface.co/Remtir/AksonOCR-Lite'
 const RADIUS = 96 // px from the button's centre to each item's centre
 
 // Motion: items swing out along the arc with a soft spring, and tuck back in
@@ -45,12 +46,13 @@ function useItems(setDonate: (open: boolean) => void): Item[] {
   if (donationsEnabled) items.push({ key: 'donate', label: t('fab.donate'), icon: <HandHeart className="size-5 text-rose-600 dark:text-rose-400" />, onSelect: () => setDonate(true) })
   if (REPO_URL) items.push({ key: 'github', label: t('fab.github'), icon: <GitHubMark className="size-5" />, href: REPO_URL })
   items.push({ key: 'model', label: t('fab.model'), icon: <span className="text-xl leading-none" aria-hidden="true">🤗</span>, href: MODEL_URL })
+  items.push({ key: 'akson', label: t('fab.aksonModel'), icon: <span className="text-sm font-bold leading-none" aria-hidden="true">Ak</span>, href: AKSON_URL })
   return items
 }
 
 /**
  * Floating button (bottom right) that opens a wheel of links: support the
- * developer, the GitHub repo and the OpenThai model on Hugging Face.
+ * developer, the GitHub repo and the OpenThai and AksonOCR-Lite models on Hugging Face.
  */
 export function SupportFab({ className }: { className?: string }) {
   const { t } = useTranslation()

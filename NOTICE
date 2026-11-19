@@ -5,9 +5,9 @@ Licensed under the Apache License, Version 2.0 (see LICENSE).
 
 This product bundles and adapts third-party work:
 
-  OpenThai2.0-OCR-Text by iApp Technology (Apache-2.0)
-  https://huggingface.co/iapp/OpenThai2.0-OCR-Text
-  The model files (det.onnx, rec.onnx, rec_dict.txt, config.json, det.yml) are
+  OpenThai2.1-OCR-Text-20261118 (v2.1.4) by iApp Technology (Apache-2.0)
+  https://huggingface.co/iapp/OpenThai2.1-OCR-Text-20261118
+  The model files (det.onnx, rec.onnx, rec2.onnx, rec_dict.txt, config.json, det.yml) are
   redistributed unmodified. src/ocr/ is a TypeScript port of the model's
   reference runtime (runtime/line_engine.py, runtime/thai_norm.py).
 
@@ -15,3 +15,19 @@ This product bundles and adapts third-party work:
     PP-OCRv6_tiny_det, PP-OCRv6_tiny_rec, th_PP-OCRv5_mobile_rec (character list)
     Copyright (c) PaddlePaddle Authors (Apache-2.0)
     https://huggingface.co/PaddlePaddle
+
+  AksonOCR-Lite by Teetouch Jaknamon / Remtir (Apache-2.0), the optional second engine
+  https://huggingface.co/Remtir/AksonOCR-Lite
+  https://github.com/Remtir/AksonOCR-Lite
+  Its ONNX models are redistributed as a 16-bit (fp16) copy made by the FreeThaiOCR
+  contributors with scripts/akson-fp16/convert.py (weights converted, nothing else
+  changed). src/ocr/akson/ is a TypeScript port of its runtime (aksonocr_lite/det.py,
+  rec.py, orient.py, layout.py, table.py, pipeline.py) and of the PaddleX layout
+  post-processing it vendors.
+
+  Those models include or are derived from:
+    PP-OCRv6_medium_det, PP-DocLayoutV3, PP-LCNet_x1_0_doc_ori and
+    PP-LCNet_x1_0_textline_ori, and PP-OCRv6_tiny_rec (fine-tuned)
+    Copyright (c) PaddlePaddle Authors (Apache-2.0)
+    Table Transformer v1.1-all (table structure)
+    Copyright (c) Microsoft Corporation (MIT License)

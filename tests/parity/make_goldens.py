@@ -1,6 +1,7 @@
 """Produce golden outputs from the model's Python reference runtime.
 
-Usage (from the repo root, in a venv with onnxruntime opencv-python-headless pyclipper numpy pillow):
+Usage (from the repo root, in a venv with onnxruntime opencv-python-headless pyclipper numpy pillow,
+pinned to the versions the JS side uses; see README "Regenerating parity goldens"):
     python -I tests/parity/make_goldens.py <model_dir_with_runtime/>
 
 1. Derives extra fixtures (rotated, skewed, upside down, line crop) from the
