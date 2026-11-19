@@ -11,13 +11,14 @@ void i18n
     resources: { en: { translation: en }, th: { translation: th } },
     supportedLngs: ['th', 'en'],
     nonExplicitSupportedLngs: true,
-    fallbackLng: 'en',
+    // Thai by default; English only when chosen (?lng=en or the header switch, remembered).
+    fallbackLng: 'th',
     interpolation: { escapeValue: false },
-    detection: { order: ['querystring', 'localStorage', 'navigator'], lookupQuerystring: 'lng', lookupLocalStorage: 'freethaiocr.lang', caches: ['localStorage'] },
+    detection: { order: ['querystring', 'localStorage'], lookupQuerystring: 'lng', lookupLocalStorage: 'freethaiocr.lang', caches: ['localStorage'] },
   })
 
 const syncHtmlLang = (lng: string) => document.documentElement.setAttribute('lang', lng.startsWith('th') ? 'th' : 'en')
-syncHtmlLang(i18n.language ?? 'en')
+syncHtmlLang(i18n.language ?? 'th')
 i18n.on('languageChanged', syncHtmlLang)
 
 export default i18n

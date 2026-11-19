@@ -3,7 +3,6 @@ import { useSyncExternalStore } from 'react'
 export type Theme = 'light' | 'dark'
 const KEY = 'freethaiocr.theme'
 const listeners = new Set<() => void>()
-const media = window.matchMedia('(prefers-color-scheme: dark)')
 
 function saved(): Theme | null {
   try {
@@ -14,13 +13,13 @@ function saved(): Theme | null {
   }
 }
 
-const current = (): Theme => saved() ?? (media.matches ? 'dark' : 'light')
+/** Light unless the user switched to dark (the system setting is not followed). */
+const current = (): Theme => saved() ?? 'light'
 
 function apply() {
   document.documentElement.classList.toggle('dark', current() === 'dark')
   listeners.forEach((l) => l())
 }
-media.addEventListener('change', apply)
 
 export function setTheme(t: Theme) {
   try {
@@ -34,7 +33,7 @@ export function setTheme(t: Theme) {
   apply()
 }
 
-/** Light/dark theme: the user's choice, else the system setting. */
+/** Light/dark theme: the user's choice, else light. */
 export function useTheme(): Theme {
   return useSyncExternalStore(
     (cb) => {
