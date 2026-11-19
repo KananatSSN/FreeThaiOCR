@@ -1,26 +1,30 @@
 import { HandHeart, MessageCircleHeart, X } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { cn } from 'cn'
 import { DonateDialog, donationsEnabled } from './DonateDialog'
 
 const REPO_URL = import.meta.env.VITE_REPO_URL?.trim()
 const MODEL_URL = 'https://huggingface.co/iapp/OpenThai2.1-OCR-Text-20261118'
 const AKSON_URL = 'https://huggingface.co/Remtir/AksonOCR-Lite'
-const RADIUS = 96 // px from the button's centre to each item's centre
+// Layout: the items stand in one column straight above the round button, evenly
+// spaced, each with its label to its left at the same distance. Sizes in px.
+const FAB = 56 // the round button
+const ITEM = 48 // each item
+const GAP = 12 // between neighbouring items, and between the button and the first item
+/** Distance the k-th item from the bottom (k = 0 nearest the button) rises above it. */
+const rise = (k: number) => FAB / 2 + GAP + ITEM / 2 + k * (ITEM + GAP)
 
-// Motion: items swing out along the arc with a soft spring, and tuck back in
-// quicker, in reverse order. Durations in ms.
-const OPEN_MS = 420
-const CLOSE_MS = 220
-const STAGGER_OPEN = 45
-const STAGGER_CLOSE = 30
+// Motion: items rise out of the button with a soft spring, nearest first, and
+// tuck back in quicker, in reverse order. Labels fade in once their item has
+// almost settled. Durations in ms.
+const OPEN_MS = 380
+const CLOSE_MS = 200
+const STAGGER_OPEN = 40
+const STAGGER_CLOSE = 25
+const LABEL_DELAY = 160
 const SPRING = 'cubic-bezier(0.34, 1.36, 0.64, 1)' // slight overshoot, settles softly
 const TUCK = 'cubic-bezier(0.4, 0, 1, 1)' // accelerate away
-// Items start folded at the middle of the fan (45°) and spread out to their
-// places, so no path ever swings below or right of the button (off-screen).
-const FOLD_ANGLE = 45
 
 const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
@@ -51,7 +55,7 @@ function useItems(setDonate: (open: boolean) => void): Item[] {
 }
 
 /**
- * Floating button (bottom right) that opens a wheel of links: support the
+ * Floating button (bottom right) that opens a column of links: support the
  * developer, the GitHub repo and the OpenThai and AksonOCR-Lite models on Hugging Face.
  */
 export function SupportFab({ className }: { className?: string }) {
@@ -60,20 +64,9 @@ export function SupportFab({ className }: { className?: string }) {
   const [donate, setDonate] = useState(false)
   const items = useItems(setDonate)
   const reduced = prefersReducedMotion()
-  // Labels appear once the items have settled: tooltips are positioned when
-  // they open and don't follow CSS transform animations.
-  const [labels, setLabels] = useState(false)
-  useEffect(() => {
-    if (!open) return
-    const id = setTimeout(() => setLabels(true), reduced ? 120 : OPEN_MS + STAGGER_OPEN * (items.length - 1))
-    return () => {
-      clearTimeout(id)
-      setLabels(false)
-    }
-  }, [open, reduced, items.length])
   const root = useRef<HTMLDivElement>(null)
 
-  // Close on Escape or a click/tap anywhere outside the wheel.
+  // Close on Escape or a click/tap anywhere outside the menu.
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
@@ -86,20 +79,14 @@ export function SupportFab({ className }: { className?: string }) {
     }
   }, [open])
 
-  // Spread items over a quarter circle, from straight up (90°) to straight left (180°).
-  const angleOf = (i: number) => (items.length === 1 ? 135 : 90 + (i * 90) / (items.length - 1))
-
   return (
     <>
       <div ref={root} className={cn('fixed right-4 bottom-4 z-40 size-14', className)}>
         {items.map((item, i) => {
-          // rotate(a) translateX(-r) rotate(-a): a point at distance r on the arc
-          // (a = 0 straight left, 90 straight up), kept upright. Animating a and r
-          // together moves the item along a curve rather than a straight line.
-          const a = 180 - angleOf(i)
-          const placed = `rotate(${a}deg) translateX(${-RADIUS}px) rotate(${-a}deg) scale(1)`
-          const tucked = reduced ? placed : `rotate(${FOLD_ANGLE}deg) translateX(0px) rotate(${-FOLD_ANGLE}deg) scale(0.3)`
-          const delay = open ? i * STAGGER_OPEN : (items.length - 1 - i) * STAGGER_CLOSE
+          const k = items.length - 1 - i // 0 = nearest the button
+          const placed = `translateY(${-rise(k)}px) scale(1)`
+          const tucked = reduced ? placed : 'translateY(0px) scale(0.3)'
+          const delay = reduced ? 0 : open ? k * STAGGER_OPEN : (items.length - 1 - k) * STAGGER_CLOSE
           const itemClass = cn(
             'absolute top-1 left-1 flex size-12 items-center justify-center rounded-full border bg-background shadow-lg outline-none will-change-[transform,opacity] hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50',
             !open && 'pointer-events-none',
@@ -108,35 +95,45 @@ export function SupportFab({ className }: { className?: string }) {
             transform: open ? placed : tucked,
             opacity: open ? 1 : 0,
             transition: open
-              ? `transform ${OPEN_MS}ms ${SPRING} ${delay}ms, opacity 180ms ease-out ${delay}ms`
-              : `transform ${CLOSE_MS}ms ${TUCK} ${delay}ms, opacity 160ms ease-in ${delay + 60}ms`,
+              ? `transform ${OPEN_MS}ms ${SPRING} ${delay}ms, opacity 160ms ease-out ${delay}ms`
+              : `transform ${CLOSE_MS}ms ${TUCK} ${delay}ms, opacity 140ms ease-in ${delay + 40}ms`,
           }
+          // The label is part of the item, so it moves with it and its spacing never varies;
+          // it is also part of the tap target. Shown whenever open (touch screens have no hover).
+          // mr-[13px]: measured from inside the item's 1 px border, so the visible gap is GAP (12 px).
+          const label = (
+            <span
+              aria-hidden="true"
+              data-fab-label=""
+              className="absolute top-1/2 right-full mr-[13px] flex -translate-y-1/2 items-center rounded-md bg-foreground px-3 py-1.5 text-xs whitespace-nowrap text-background shadow-md"
+              style={{
+                opacity: open ? 1 : 0,
+                transition: open ? `opacity 180ms ease-out ${reduced ? 0 : delay + LABEL_DELAY}ms` : 'opacity 80ms ease-in',
+              }}
+            >
+              {item.label}
+              <span className="absolute top-1/2 -right-1 size-2.5 -translate-y-1/2 rotate-45 rounded-[2px] bg-foreground" />
+            </span>
+          )
           const common = { className: itemClass, style, 'aria-label': item.label, tabIndex: open ? 0 : -1, 'aria-hidden': !open }
-          return (
-            // Labels show whenever the wheel is open (touch screens have no hover).
-            <Tooltip key={item.key} open={labels}>
-              <TooltipTrigger asChild>
-                {item.href ? (
-                  <a {...common} href={item.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>
-                    {item.icon}
-                  </a>
-                ) : (
-                  <button
-                    {...common}
-                    type="button"
-                    onClick={() => {
-                      setOpen(false)
-                      item.onSelect?.()
-                    }}
-                  >
-                    {item.icon}
-                  </button>
-                )}
-              </TooltipTrigger>
-              <TooltipContent side={angleOf(i) < 112.5 ? 'top' : 'left'} className="pointer-events-none">
-                {item.label}
-              </TooltipContent>
-            </Tooltip>
+          return item.href ? (
+            <a key={item.key} {...common} href={item.href} target="_blank" rel="noopener noreferrer" onClick={() => setOpen(false)}>
+              {item.icon}
+              {label}
+            </a>
+          ) : (
+            <button
+              key={item.key}
+              {...common}
+              type="button"
+              onClick={() => {
+                setOpen(false)
+                item.onSelect?.()
+              }}
+            >
+              {item.icon}
+              {label}
+            </button>
           )
         })}
         <button

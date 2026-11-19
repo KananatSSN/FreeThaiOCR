@@ -25,8 +25,23 @@ test('support wheel: links and the donation QR', async ({ page }, info) => {
   const github = page.getByRole('link', { name: 'ซอร์สโค้ดบน GitHub' })
   if (repoUrl) await expect(github).toHaveAttribute('href', repoUrl)
   else await expect(github).toHaveCount(0)
-  await expect(page.getByRole('tooltip').first()).toBeVisible()
-  await page.waitForTimeout(300)
+  // Labels show beside each item, evenly spaced: same gap between items, right edges aligned.
+  await expect(model.getByText('โมเดล OpenThai บน Hugging Face')).toBeVisible()
+  await page.waitForTimeout(700) // let the spring settle
+  const rows = await page.locator('a[aria-label], button[aria-label]').filter({ has: page.locator('[data-fab-label]') }).evaluateAll((els) =>
+    els.map((e) => {
+      const r = e.getBoundingClientRect()
+      const l = e.querySelector('[data-fab-label]')!.getBoundingClientRect()
+      return { cy: r.top + r.height / 2, labelRight: l.right, labelCy: l.top + l.height / 2, left: r.left }
+    }),
+  )
+  expect(rows.length).toBeGreaterThanOrEqual(2)
+  for (let k = 1; k < rows.length; k++) expect(rows[k].cy - rows[k - 1].cy).toBeCloseTo(rows[1].cy - rows[0].cy, 0)
+  for (const r of rows) {
+    expect(r.labelCy).toBeCloseTo(r.cy, 0)
+    expect(r.left - r.labelRight).toBeCloseTo(12, 0)
+    expect(r.labelRight).toBeLessThanOrEqual(page.viewportSize()!.width)
+  }
   await page.screenshot({ path: `test-results/fab-${info.project.name}.png` })
 
   // Escape closes the wheel.
