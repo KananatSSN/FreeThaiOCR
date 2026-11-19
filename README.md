@@ -52,6 +52,8 @@ PW_BASE_URL=http://localhost:8080 npm run test:e2e
 
 ### Regenerating parity goldens
 
+CI regenerates both sets of goldens on its own runner before `npm test` (`scripts/ci-goldens.sh`): ONNX Runtime rounds differently per platform (macOS arm64, Linux arm64, Linux x86), which flips a few unstable readings on the table fixtures, so goldens only match exactly on the kind of machine that made them. The committed goldens come from macOS arm64 and are what local `npm test` uses there.
+
 Only needed when the model revision or the fixtures change. Needs Python (tested with 3.12) and the model repo
 (including `runtime/`) at the revision in `models.json`. Pin OpenCV and ONNX Runtime to the versions the JS side
 uses (`@techstark/opencv-js` and `onnxruntime-node` in `package-lock.json`): detector boxes right at the score

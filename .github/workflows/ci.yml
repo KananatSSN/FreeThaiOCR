@@ -9,9 +9,7 @@ on:
 
 jobs:
   check:
-    # ARM, like the machine the parity goldens are generated on: ONNX Runtime's ARM and x86 CPU
-    # kernels round differently, which flips a few unstable readings on the table fixtures.
-    runs-on: ubuntu-24.04-arm
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -21,7 +19,11 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
-      # Engine parity against the Python reference goldens (downloads the pinned models first).
+      # Engine parity against the Python references. The goldens are regenerated on this runner
+      # first (scripts/ci-goldens.sh): ONNX Runtime rounds differently per platform, so goldens
+      # made on another machine flip a few unstable readings.
+      - run: npm run assets
+      - run: scripts/ci-goldens.sh
       - run: npm test
       - run: npm run build
       - name: Browser tests (dev server)
