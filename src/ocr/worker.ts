@@ -12,12 +12,6 @@ import { type ModelKey, modelFolder } from './modelPaths'
 
 export type Backend = 'wasm' | 'webgpu'
 export type EngineModel = ModelKey
-export interface Rect {
-  x: number
-  y: number
-  w: number
-  h: number
-}
 export type InitStage = 'runtime' | 'models' | 'document' | 'ready'
 /** Download progress: 0..1, or null when the size is unknown. */
 export type StageCallback = (stage: InitStage, progress?: number | null) => void
@@ -191,17 +185,6 @@ function getEngine(model: EngineModel, backend: Backend, onStage?: StageCallback
   return current.engine
 }
 
-/** Shift every box of a region result back into page coordinates. */
-function offset(r: RecognizeResult, dx: number, dy: number): RecognizeResult {
-  const mv = (b: [number, number][]) => b.map(([x, y]) => [x + dx, y + dy] as [number, number])
-  return {
-    ...r,
-    lines: r.lines.map((l) => ({ ...l, box: mv(l.box), words: l.words?.map((w) => ({ ...w, box: mv(w.box) })) })),
-    dropped: r.dropped.map((l) => ({ ...l, box: mv(l.box) })),
-    blocks: r.blocks?.map((b) => ({ ...b, box: mv(b.box) })),
-  }
-}
-
 const api = {
   async init(model: EngineModel, backend: Backend, onStage?: StageCallback): Promise<EngineInfo> {
     return (await getEngine(model, backend, onStage)).info
@@ -219,24 +202,20 @@ const api = {
     }
   },
 
-  /** OCR a whole page, or only `rect` of it (page pixel coordinates). A drawn box is always read as text. */
-  async recognize(model: EngineModel, backend: Backend, image: ImageBitmap, rect?: Rect, document = false): Promise<RecognizeResult> {
+  /** OCR a whole page. */
+  async recognize(model: EngineModel, backend: Backend, image: ImageBitmap, document = false): Promise<RecognizeResult> {
     const { engine } = await getEngine(model, backend)
-    const x = rect ? Math.max(0, Math.floor(rect.x)) : 0
-    const y = rect ? Math.max(0, Math.floor(rect.y)) : 0
-    const w = rect ? Math.min(image.width - x, Math.ceil(rect.w)) : image.width
-    const h = rect ? Math.min(image.height - y, Math.ceil(rect.h)) : image.height
-    if (w < 2 || h < 2) throw new Error('Region is too small')
+    const { width: w, height: h } = image
     const canvas = new OffscreenCanvas(w, h)
     const ctx = canvas.getContext('2d', { willReadFrequently: true })!
     ctx.fillStyle = '#fff' // transparent PNG areas read as white paper, not black
     ctx.fillRect(0, 0, w, h)
-    ctx.drawImage(image, x, y, w, h, 0, 0, w, h)
+    ctx.drawImage(image, 0, 0)
+    image.close()
     const { data } = ctx.getImageData(0, 0, w, h)
     const mat = engine.engine.ops.fromRGBA(data, w, h)
     try {
-      const res: RecognizeResult = engine.kind === 'akson' ? await engine.engine.read(mat, { document: document && !rect }) : await engine.engine.read(mat)
-      return rect ? offset(res, x, y) : res
+      return engine.kind === 'akson' ? await engine.engine.read(mat, { document }) : await engine.engine.read(mat)
     } finally {
       mat.delete()
     }

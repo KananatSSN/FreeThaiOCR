@@ -3,45 +3,35 @@ import type { OcrLine } from '@/ocr/engine'
 import type { Backend, EngineModel } from '@/ocr/worker'
 
 export type Status = 'idle' | 'running' | 'done' | 'error'
-export type ResultSource = 'ocr' | 'pdf'
 export type DocKind = 'image' | 'pdf'
 
 export interface PageResult {
-  source: ResultSource
   text: string
   lines: OcrLine[]
   /** Clockwise degrees the engine turned the page to read it. */
   rotation?: number
-  /** Which OCR engine read it (absent for embedded PDF text). */
+  /** Which OCR engine read it. */
   engine?: EngineModel
   /** Akson document mode: the page as Markdown; shown and edited in place of `text`. */
   markdown?: string
 }
 
-export interface RegionBox {
-  id: string
-  /** Display number; stays stable while other boxes are added or removed. */
-  n: number
-  x: number
-  y: number
-  w: number
-  h: number
+/** One engine's reading of a page: its status, result and the user's corrections. */
+export interface EngineRead {
   status: Status
-  result?: PageResult
-  edited?: string
   error?: string
+  result?: PageResult
+  /** User corrections to the text; undefined = untouched. */
+  edited?: string
 }
 
-export interface PageState {
-  status: Status
-  error?: string
-  result?: PageResult
-  /** User corrections to the page text; undefined = untouched. */
-  edited?: string
-  /** The page has its own text layer (a born-digital PDF). */
-  hasPdfText?: boolean
+/**
+ * A page. Its own read fields are OpenThai's (read automatically); `akson` holds
+ * AksonOCR-Lite's read, made only when its tab is open (see `readOf`).
+ */
+export interface PageState extends EngineRead {
+  akson?: EngineRead
   thumb?: string
-  boxes: RegionBox[]
 }
 
 export interface FileMeta {
@@ -61,12 +51,16 @@ export interface FileEntry {
   error?: string
   meta?: FileMeta
   pages: PageState[]
-  /** Embedded PDF text detection has run for this file. */
-  textScanned: boolean
 }
 
-export type Mode = 'pan' | 'box'
 export type EngineState = 'idle' | 'loading' | 'ready' | 'error'
+export interface EngineInfo {
+  state: EngineState
+  stage?: string
+  /** Download progress of the current stage, 0..1 (null = unknown size). */
+  progress?: number | null
+  error?: string
+}
 
 export interface BatchJob {
   scope: 'file' | 'all' | 'export'
@@ -82,22 +76,22 @@ interface AppState {
   files: FileEntry[]
   activeId: string | null
   current: number
-  mode: Mode
   backend: Backend
-  engineModel: EngineModel
-  /** Akson document mode (layout + tables); only used with engineModel 'akson'. */
+  /** The user has agreed to AksonOCR-Lite's download (its tab then reads the page on screen). */
+  aksonEnabled: boolean
+  /** Akson document mode (layout + tables). */
   documentMode: boolean
-  engine: EngineState
-  engineStage?: string
-  /** Download progress of the current stage, 0..1 (null = unknown size). */
-  engineProgress?: number | null
-  engineError?: string
+  /** The user has agreed to document mode's download once. */
+  documentConsented: boolean
+  engines: Record<EngineModel, EngineInfo>
+  /** The results panel's open tab: the viewer shows that engine's lines. */
+  resultsTab: EngineModel
+  /** Background OpenThai reading was stopped by the user. */
+  autoPaused: boolean
   batch: BatchJob | null
-  selectedBox: string | null
   hoveredLine: number | null
   /** A line clicked in the viewer, for the results panel to reveal (then cleared). */
   focusLine: number | null
-  nextBoxN: number
 
   addFiles(entries: FileEntry[]): void
   patchFile(id: string, patch: Partial<FileEntry>): void
@@ -105,17 +99,15 @@ interface AppState {
   clearFiles(): void
   setActive(id: string | null): void
   setCurrent(i: number): void
-  setMode(m: Mode): void
   setBackend(b: Backend): void
-  setEngineModel(m: EngineModel): void
+  enableAkson(): void
   setDocumentMode(on: boolean): void
-  setEngine(s: EngineState, extra?: { stage?: string; error?: string; progress?: number | null }): void
+  setEngine(model: EngineModel, state: EngineState, extra?: Omit<EngineInfo, 'state'>): void
+  setResultsTab(t: EngineModel): void
+  setAutoPaused(on: boolean): void
   patchPage(fileId: string, i: number, patch: Partial<PageState>): void
-  addBox(fileId: string, i: number, rect: { x: number; y: number; w: number; h: number }): RegionBox
-  patchBox(fileId: string, i: number, id: string, patch: Partial<RegionBox>): void
-  removeBox(fileId: string, i: number, id: string): void
-  clearBoxes(fileId: string, i: number): void
-  selectBox(id: string | null): void
+  /** Patch one engine's read of a page (see `readOf` for where it lives). */
+  patchRead(fileId: string, i: number, engine: EngineModel, patch: Partial<EngineRead>): void
   hoverLine(i: number | null): void
   setFocusLine(i: number | null): void
   setBatch(b: BatchJob | null): void
@@ -136,7 +128,7 @@ const writePref = (key: string, v: string) => {
   }
 }
 
-export const freshPages = (n: number): PageState[] => Array.from({ length: n }, () => ({ status: 'idle', boxes: [] }))
+export const freshPages = (n: number): PageState[] => Array.from({ length: n }, () => ({ status: 'idle' }))
 
 const revokeThumbs = (f: FileEntry) => f.pages.forEach((p) => p.thumb && URL.revokeObjectURL(p.thumb))
 
@@ -148,20 +140,22 @@ export const useApp = create<AppState>((set, get) => ({
   files: [],
   activeId: null,
   current: 0,
-  mode: 'pan',
   backend: readPref<Backend>('freethaiocr.backend', 'wasm'),
-  engineModel: readPref<EngineModel>('freethaiocr.engine', 'openthai') === 'akson' ? 'akson' : 'openthai',
+  // Earlier versions chose one engine in Settings: someone who picked Akson there already agreed.
+  aksonEnabled: readPref<string>('freethaiocr.akson', 'off') === 'on' || readPref<string>('freethaiocr.engine', '') === 'akson',
   documentMode: readPref<string>('freethaiocr.documentMode', 'off') === 'on',
-  engine: 'idle',
+  documentConsented: readPref<string>('freethaiocr.documentMode', 'off') === 'on' || readPref<string>('freethaiocr.documentConsent', 'off') === 'on',
+  engines: { openthai: { state: 'idle' }, akson: { state: 'idle' } },
+  resultsTab: 'openthai',
+  autoPaused: false,
   batch: null,
-  selectedBox: null,
   hoveredLine: null,
   focusLine: null,
-  nextBoxN: 1,
 
   addFiles(entries) {
     set((s) => ({
       files: [...s.files, ...entries],
+      autoPaused: false, // new files start reading even after a Stop
       activeId: s.activeId ?? entries[0]?.id ?? null,
       current: s.activeId ? s.current : 0,
     }))
@@ -177,63 +171,48 @@ export const useApp = create<AppState>((set, get) => ({
     const files = s.files.filter((f) => f.id !== id)
     const wasActive = s.activeId === id
     const next = wasActive ? (files[Math.min(idx, files.length - 1)]?.id ?? null) : s.activeId
-    set({ files, activeId: next, ...(wasActive ? { current: 0, selectedBox: null, hoveredLine: null } : {}) })
+    set({ files, activeId: next, ...(wasActive ? { current: 0, hoveredLine: null } : {}) })
   },
   clearFiles() {
     get().files.forEach(revokeThumbs)
-    set({ files: [], activeId: null, current: 0, mode: 'pan', selectedBox: null, hoveredLine: null, nextBoxN: 1, batch: null })
+    set({ files: [], activeId: null, current: 0, hoveredLine: null, batch: null, autoPaused: false })
   },
   setActive(activeId) {
     if (activeId === get().activeId) return
-    set({ activeId, current: 0, selectedBox: null, hoveredLine: null })
+    set({ activeId, current: 0, hoveredLine: null })
   },
   setCurrent(current) {
-    set({ current, selectedBox: null, hoveredLine: null })
+    set({ current, hoveredLine: null })
   },
-  setMode(mode) {
-    set({ mode, selectedBox: mode === 'pan' ? null : get().selectedBox })
-  },
-  setEngineModel(engineModel) {
-    writePref('freethaiocr.engine', engineModel)
-    set({ engineModel, engine: 'idle' })
+  enableAkson() {
+    writePref('freethaiocr.akson', 'on')
+    set({ aksonEnabled: true })
   },
   setDocumentMode(on) {
     writePref('freethaiocr.documentMode', on ? 'on' : 'off')
-    set({ documentMode: on })
+    if (on) writePref('freethaiocr.documentConsent', 'on')
+    set({ documentMode: on, ...(on ? { documentConsented: true } : {}) })
   },
   setBackend(backend) {
     writePref('freethaiocr.backend', backend)
-    set({ backend, engine: 'idle' })
+    set({ backend, engines: { openthai: { state: 'idle' }, akson: { state: 'idle' } } })
   },
-  setEngine(engine, extra) {
-    set({ engine, engineStage: extra?.stage, engineError: extra?.error, engineProgress: extra?.progress })
+  setEngine(model, state, extra) {
+    set((s) => ({ engines: { ...s.engines, [model]: { state, ...extra } } }))
+  },
+  setResultsTab(resultsTab) {
+    set({ resultsTab })
+  },
+  setAutoPaused(autoPaused) {
+    set({ autoPaused })
   },
   patchPage(fileId, i, patch) {
     set((s) => ({ files: mapPage(s.files, fileId, i, (p) => ({ ...p, ...patch })) }))
   },
-  addBox(fileId, i, rect) {
-    const box: RegionBox = { id: crypto.randomUUID(), n: get().nextBoxN, ...rect, status: 'idle' }
+  patchRead(fileId, i, engine, patch) {
     set((s) => ({
-      nextBoxN: s.nextBoxN + 1,
-      selectedBox: box.id,
-      files: mapPage(s.files, fileId, i, (p) => ({ ...p, boxes: [...p.boxes, box] })),
+      files: mapPage(s.files, fileId, i, (p) => (engine === 'openthai' ? { ...p, ...patch } : { ...p, akson: { ...(p.akson ?? IDLE_READ), ...patch } })),
     }))
-    return box
-  },
-  patchBox(fileId, i, id, patch) {
-    set((s) => ({ files: mapPage(s.files, fileId, i, (p) => ({ ...p, boxes: p.boxes.map((b) => (b.id === id ? { ...b, ...patch } : b)) })) }))
-  },
-  removeBox(fileId, i, id) {
-    set((s) => ({
-      selectedBox: s.selectedBox === id ? null : s.selectedBox,
-      files: mapPage(s.files, fileId, i, (p) => ({ ...p, boxes: p.boxes.filter((b) => b.id !== id) })),
-    }))
-  },
-  clearBoxes(fileId, i) {
-    set((s) => ({ selectedBox: null, files: mapPage(s.files, fileId, i, (p) => ({ ...p, boxes: [] })) }))
-  },
-  selectBox(selectedBox) {
-    set({ selectedBox })
   },
   hoverLine(hoveredLine) {
     set({ hoveredLine })
@@ -253,8 +232,19 @@ export const selectActive = (s: S) => getFile(s, s.activeId)
 export const useActiveFile = () => useApp(selectActive)
 export const useActivePage = () => useApp((s) => selectActive(s)?.pages[s.current])
 
-/** A page counts as read when it has a result from OCR or the PDF's own text. */
-export const pageDone = (p: PageState) => p.status === 'done' && !!p.result
+const IDLE_READ: EngineRead = { status: 'idle' }
+/** One engine's read of a page. */
+export const readOf = (p: PageState, engine: EngineModel): EngineRead => (engine === 'openthai' ? p : (p.akson ?? IDLE_READ))
+
+/** Akson can only be used once its download was agreed to; until then everything uses OpenThai. */
+const usable = (s: S, engine: EngineModel): EngineModel => (engine === 'akson' && s.aksonEnabled ? 'akson' : 'openthai')
+/** Engine of the open tab: the viewer shows its lines and exports use its text. */
+export const viewEngine = (s: S) => usable(s, s.resultsTab)
+
+/** A read counts as done when it has a result. */
+export const readDone = (r: EngineRead) => r.status === 'done' && !!r.result
+/** OpenThai has read the page. */
+export const pageDone = (p: PageState) => readDone(p)
 export const pagesDone = (f: FileEntry) => f.pages.filter(pageDone).length
 export const fileName = (f: FileEntry) => f.path.split('/').pop() || f.path
 
@@ -262,7 +252,7 @@ export const fileName = (f: FileEntry) => f.path.split('/').pop() || f.path
  * Character range of line `i` in the page text (rows joined by newlines, lines in
  * a row by spaces), or null if the user has edited the text.
  */
-export function lineRange(p: PageState, i: number): [number, number] | null {
+export function lineRange(p: EngineRead, i: number): [number, number] | null {
   const r = p.result
   if (!r || p.edited !== undefined || !r.lines[i]) return null
   let pos = 0
@@ -270,7 +260,5 @@ export function lineRange(p: PageState, i: number): [number, number] | null {
   return [pos, pos + r.lines[i].text.length]
 }
 
-/** The text a page currently shows: the user's edit, else the result. */
 /** What the results panel shows and edits: the user's text, else the Markdown (document mode), else the text. */
-export const pageText = (p: PageState) => p.edited ?? p.result?.markdown ?? p.result?.text ?? ''
-export const boxText = (b: RegionBox) => b.edited ?? b.result?.text ?? ''
+export const pageText = (p: EngineRead) => p.edited ?? p.result?.markdown ?? p.result?.text ?? ''

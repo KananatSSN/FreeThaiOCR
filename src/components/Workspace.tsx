@@ -22,20 +22,21 @@ export function Workspace() {
   const [viewer, setViewer] = useState<ViewerHandle | null>(null)
   const onReady = useCallback((h: ViewerHandle) => setViewer(h), [])
   const [drawer, setDrawer] = useState(false)
+  // The page on screen and its OpenThai status: the drawer opens when that page's result arrives.
+  const pageKey = useApp((s) => `${s.activeId}:${s.current}`)
   const status = useApp((s) => selectActive(s)?.pages[s.current]?.status)
-  const boxesRunning = useApp((s) => !!selectActive(s)?.pages[s.current]?.boxes.some((b) => b.status === 'running'))
 
-  // Start fetching the engine as soon as a document is open: by the time the
-  // user presses OCR it is usually ready.
+  // Start fetching OpenThai as soon as a document is open: pages are read automatically.
   useEffect(() => {
-    void ensureEngine().catch(() => {})
+    void ensureEngine('openthai').catch(() => {})
   }, [])
 
-  // On phones, open the results drawer when a result arrives.
-  const [prevStatus, setPrevStatus] = useState(status)
-  if (status !== prevStatus) {
-    setPrevStatus(status)
-    if (isMobile && status === 'done') setDrawer(true)
+  // On phones, open the results drawer when the page on screen has just been read
+  // (not when moving to a page that was read earlier, nor over the file list).
+  const [prev, setPrev] = useState({ pageKey, status })
+  if (status !== prev.status || pageKey !== prev.pageKey) {
+    setPrev({ pageKey, status })
+    if (isMobile && !filesOpen && status === 'done' && pageKey === prev.pageKey && prev.status === 'running') setDrawer(true)
   }
 
   const viewerArea = (
@@ -55,7 +56,6 @@ export function Workspace() {
         <div className="flex items-center gap-2 border-t bg-background p-2">
           <Button className="flex-1" variant="secondary" onClick={() => setDrawer(true)}>
             <PanelBottomOpen /> {t('results.show')}
-            {boxesRunning && <span className="size-2 animate-pulse rounded-full bg-orange-500" />}
           </Button>
         </div>
         <Drawer open={filesOpen} onOpenChange={setFilesOpen} direction="left">

@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { useCopy } from '@/hooks/useCopy'
-import { fileName, getFile, useActiveFile, useApp } from '@/state/store'
+import { fileName, getFile, useActiveFile, useApp, viewEngine } from '@/state/store'
 
 // pdf-lib, fflate and the font only load when an export is requested.
 const exporters = () => import('@/lib/exporters')
@@ -19,6 +19,8 @@ export function ExportMenu() {
   const file = useActiveFile()
   const nFiles = useApp((s) => s.files.length)
   const busy = useApp((s) => !!s.batch)
+  // Exports use the engine of the open tab.
+  const engine = useApp(viewEngine)
   if (!file) return null
 
   /**
@@ -30,32 +32,43 @@ export function ExportMenu() {
       action: { label: t('toolbar.cancel'), onClick: () => void import('@/lib/ocrService').then((m) => m.cancelBatch()) },
       duration: Infinity,
     })
-    // Mirror batch progress into the toast while OCR runs.
+    // Mirror batch progress into the toast while OCR runs (only when it changes: the
+    // store also changes with every background read).
+    let shown = ''
     const unsub = useApp.subscribe((s) => {
       const b = s.batch
       if (!b || b.scope !== 'export' || !b.pagesTotal) return
-      const desc = [t('toolbar.progress', { done: b.pagesDone, total: b.pagesTotal }), b.pagesTotal > LONG_JOB_PAGES ? t('export.long') : '', b.currentPath ?? '']
-      toast.loading(t('export.ocrMissing'), { id, description: desc.filter(Boolean).join(' · ') })
+      const desc = [t('toolbar.progress', { done: b.pagesDone, total: b.pagesTotal }), b.pagesTotal > LONG_JOB_PAGES ? t('export.long') : '', b.currentPath ?? ''].filter(Boolean).join(' · ')
+      if (desc === shown) return
+      shown = desc
+      toast.loading(t('export.ocrMissing'), { id, description: desc })
     })
+    // The outcome gets a toast of its own: an in-place update arriving right after a
+    // progress update can be lost by the toaster, leaving "Reading…" up for good.
+    const finish = (show: () => void) => {
+      unsub()
+      toast.dismiss(id)
+      show()
+    }
     try {
       const outcome = await job(await exporters())
-      if (outcome === 'cancelled') toast.info(t('export.cancelled'), { id, description: undefined, action: undefined, duration: 3000 })
-      else toast.success(t('export.done'), { id, description: undefined, action: undefined, duration: 3000 })
+      if (outcome === 'cancelled') finish(() => toast.info(t('export.cancelled'), { duration: 3000 }))
+      else finish(() => toast.success(t('export.done'), { duration: 3000 }))
     } catch (e) {
-      toast.error(t('export.failed', { error: e instanceof Error ? e.message : String(e) }), { id, description: undefined, action: undefined, duration: 6000 })
+      finish(() => toast.error(t('export.failed', { error: e instanceof Error ? e.message : String(e) }), { duration: 6000 }))
     } finally {
       unsub()
     }
   }
 
-  const exportThis = (kind: Kind) => () => void run((m) => m.exportFile(file.id, kind))
-  const exportAll = (kind: Kind) => () => void run((m) => m.exportAll(kind))
+  const exportThis = (kind: Kind) => () => void run((m) => m.exportFile(file.id, kind, engine))
+  const exportAll = (kind: Kind) => () => void run((m) => m.exportAll(kind, engine))
   const copyAll = () =>
     void run(async (m) => {
       const { completeFiles } = await import('@/lib/ocrService')
-      if (!(await completeFiles([file.id], 'export'))) return 'cancelled'
+      if (!(await completeFiles([file.id], 'export', engine))) return 'cancelled'
       const latest = getFile(useApp.getState(), file.id)
-      if (latest) await copy(m.allText(latest.pages))
+      if (latest) await copy(m.allText(m.asRead(latest, engine).pages))
       return 'done'
     })
 
@@ -68,6 +81,7 @@ export function ExportMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64">
         <DropdownMenuLabel className="truncate text-xs text-muted-foreground">{t('export.thisFile', { name: fileName(file) })}</DropdownMenuLabel>
+        <p className="px-2 pb-1 text-xs text-muted-foreground">{t('export.engine', { engine: engine === 'akson' ? 'AksonOCR-Lite' : 'OpenThai 2.1' })}</p>
         <DropdownMenuItem onSelect={copyAll}>
           <ClipboardCopy /> {t('export.copyAll')}
         </DropdownMenuItem>

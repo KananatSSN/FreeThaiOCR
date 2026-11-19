@@ -20,8 +20,9 @@ import {
 import { Zip, ZipDeflate, ZipPassThrough } from 'fflate'
 import i18n from '@/i18n'
 import type { OcrLine } from '@/ocr/engine'
-import { type FileEntry, getFile, type PageState, pageText, useApp } from '@/state/store'
-import { type LoadedDoc, openDoc, pdfPointMapper } from './documents'
+import type { EngineModel } from '@/ocr/worker'
+import { type FileEntry, getFile, type PageState, pageText, readOf, useApp } from '@/state/store'
+import { hasTextLayer, type LoadedDoc, openDoc, pdfPointMapper } from './documents'
 import { basename, zipName, zipPath } from './fileTypes'
 import { markdownToText } from './markdown'
 import { completeFiles } from './ocrService'
@@ -38,6 +39,18 @@ export function download(blob: Blob, filename: string) {
   a.click()
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 10_000)
+}
+
+/** The file as `engine` read it: each page's status, result and edits are that engine's. */
+export function asRead(e: FileEntry, engine: EngineModel): FileEntry {
+  if (engine === 'openthai') return e
+  return {
+    ...e,
+    pages: e.pages.map((p) => {
+      const r = readOf(p, engine)
+      return { ...p, status: r.status, error: r.error, result: r.result, edited: r.edited }
+    }),
+  }
 }
 
 /** A page as plain text (user edits included): document-mode Markdown is flattened. */
@@ -65,18 +78,11 @@ function buildJson(e: FileEntry): Blob {
       page: i + 1,
       width: e.meta?.sizes[i].width,
       height: e.meta?.sizes[i].height,
-      source: p.result?.source ?? null,
       engine: p.result?.engine ? ENGINE_NAMES[p.result.engine] : null,
       text: plainText(p),
       ...(p.result?.markdown !== undefined ? { markdown: pageText(p) } : {}),
       edited: p.edited !== undefined,
       lines: p.result?.lines.map(({ text, confidence, box, words }) => ({ text, confidence, box, words })) ?? [],
-      regions: p.boxes.map((b) => ({
-        n: b.n,
-        rect: { x: b.x, y: b.y, w: b.w, h: b.h },
-        text: b.edited ?? b.result?.text ?? '',
-        lines: b.result?.lines.map(({ text, confidence, box }) => ({ text, confidence, box })) ?? [],
-      })),
     })),
   }
   return new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
@@ -92,11 +98,12 @@ async function build(e: FileEntry, kind: ExportKind): Promise<Blob> {
 export type ExportOutcome = 'done' | 'cancelled'
 const latest = (id: string) => getFile(useApp.getState(), id)
 
-/** Export one file, OCRing any pages that have no text yet first. */
-export async function exportFile(id: string, kind: ExportKind): Promise<ExportOutcome> {
-  if (!(await completeFiles([id], 'export'))) return 'cancelled'
-  const e = latest(id)
-  if (!e) return 'cancelled'
+/** Export one file as `engine` read it, OCRing any pages that have no text yet first. */
+export async function exportFile(id: string, kind: ExportKind, engine: EngineModel = 'openthai'): Promise<ExportOutcome> {
+  if (!(await completeFiles([id], 'export', engine))) return 'cancelled'
+  const found = latest(id)
+  if (!found) return 'cancelled'
+  const e = asRead(found, engine)
   download(await build(e, kind), basename(zipPath(e.path, SUFFIX[kind], new Set())))
   return 'done'
 }
@@ -106,10 +113,13 @@ export async function exportFile(id: string, kind: ExportKind): Promise<ExportOu
  * OCRing missing pages first. Outputs are built one file at a time, so only one
  * searchable PDF is ever being assembled in memory.
  */
-export async function exportAll(kind: ExportKind): Promise<ExportOutcome> {
+export async function exportAll(kind: ExportKind, engine: EngineModel = 'openthai'): Promise<ExportOutcome> {
   const ids = useApp.getState().files.map((f) => f.id)
-  if (!(await completeFiles(ids, 'export'))) return 'cancelled'
-  const files = ids.map(latest).filter((f): f is FileEntry => !!f)
+  if (!(await completeFiles(ids, 'export', engine))) return 'cancelled'
+  const files = ids
+    .map(latest)
+    .filter((f): f is FileEntry => !!f)
+    .map((f) => asRead(f, engine))
   const chunks: Uint8Array[] = []
   let zipError: Error | null = null
   const zip = new Zip((err, data) => {
@@ -221,9 +231,10 @@ async function buildSearchablePdf(e: FileEntry): Promise<Blob> {
       page.drawImage(img, { x: 0, y: 0, width: width * s, height: height * s })
       map = (x, y) => [x * s, (height - y) * s]
     }
-    // Only OCR results need a text layer: a PDF's own text is already searchable.
+    // A born-digital page is already searchable: a second (OCR) text layer would make
+    // search and copy find everything twice.
     const r = p.result
-    if (!r || r.source !== 'ocr') continue
+    if (!r || (doc.kind === 'pdf' && (await hasTextLayer(doc, i)))) continue
     const fontKey = page.node.newFontDictionary(font.name, font.ref)
     if (p.edited !== undefined) {
       // The user corrected the text, so word positions no longer apply: place

@@ -10,7 +10,6 @@ test('after one visit, OCR works offline from the service worker cache', async (
   await page.evaluate(() => navigator.serviceWorker.ready)
   // First visit: the OCR run pulls the runtime and models into the cache.
   await page.locator('input[type=file]').first().setInputFiles(img)
-  await page.getByRole('button', { name: 'OCR page' }).click()
   await expect(page.locator('textarea').first()).toHaveValue(/ประกาศเรื่อง/)
 
   // Count what the network serves on a repeat visit: the big files must come from the cache.
@@ -21,7 +20,6 @@ test('after one visit, OCR works offline from the service worker cache', async (
   await context.setOffline(true)
   await page.reload()
   await page.locator('input[type=file]').first().setInputFiles(img)
-  await page.getByRole('button', { name: 'OCR page' }).click()
   await expect(page.locator('textarea').first()).toHaveValue(/ประกาศเรื่อง/)
   expect(fromNetwork).toEqual([])
 })

@@ -2,16 +2,15 @@
 
 **OCR ภาษาไทยและอังกฤษ ที่ทำงานในเบราว์เซอร์ทั้งหมด** — free, private Thai & English OCR that runs entirely in the browser. Files never leave the user's device; the server only hands out static files.
 
-- Upload images, PDFs or **a whole folder** (or take a photo on a phone); files are listed in a sidebar grouped by folder, with progress per file and **OCR all files**
-- **OCR page** reads the whole page and shows every detected line on the image
-- **Draw box** reads just a region; draw as many numbered boxes as you like, move or resize them and they re-read
-- Multi-page PDFs: page thumbnails, **OCR all pages** with progress and cancel; pages that already have a text layer use it directly (instant, exact)
-- Edit the results, copy them, or export **TXT**, **JSON** (lines, boxes, confidence) or a **searchable PDF** (invisible text layer over the original pages). Exports always cover the whole file: pages not read yet are OCR'd first. With several files, **export all** as a ZIP (one output per file, folder structure kept)
+- Upload images, PDFs or **a whole folder** (or take a photo on a phone); files are listed in a sidebar grouped by folder, with progress per file
+- **Read automatically**: every page of every file is OCR'd in the background as soon as it's added (the page on screen first), with progress and Stop/Resume in the toolbar; every detected line is shown on the image
+- Multi-page PDFs with page thumbnails. Every page is OCR'd, including born-digital ones: the text always comes from the model, never from the PDF's own text layer
+- Edit the results, copy them, or export **TXT**, **JSON** (lines, boxes, confidence) or a **searchable PDF** (invisible text layer over the original pages; born-digital pages, which are already searchable, get none, so nothing is found twice). Exports always cover the whole file: pages not read yet are OCR'd first. With several files, **export all** as a ZIP (one output per file, folder structure kept)
 - Thai/English UI, light/dark theme, works offline after the first visit (PWA)
 
 OCR engine: [OpenThai 2.1 OCR Text](https://huggingface.co/iapp/OpenThai2.1-OCR-Text-20261118) (v2.1.4) by iApp Technology (Apache-2.0), a 4 MB PP-OCRv6-tiny text-line detector + Thai line recognizer, plus a second recognizer for loopless Thai fonts (Kanit, Prompt, Sukhumvit Set) that is downloaded only when a page needs it. FreeThaiOCR is a browser UI for this model; the accuracy is iApp's work.
 
-Optional second engine (Settings ⚙ → OCR engine): [AksonOCR-Lite](https://huggingface.co/Remtir/AksonOCR-Lite) by Teetouch Jaknamon / Remtir (Apache-2.0), which reads Thai as whole grapheme clusters. Visitors who pick it download about 22 MB once. Its **document mode** adds layout analysis (PP-DocLayoutV3) and table structure (Microsoft Table Transformer), and returns each page as Markdown with headings and HTML tables (+112 MB once; offered with the GPU switched on or on a computer with 8 GB of memory). The app runs a 16-bit copy of its models (see below).
+Second engine (the results panel's **AksonOCR** tab, next to **OpenThai**): [AksonOCR-Lite](https://huggingface.co/Remtir/AksonOCR-Lite) by Teetouch Jaknamon / Remtir (Apache-2.0), which reads Thai as whole grapheme clusters. It downloads about 22 MB once, after the visitor presses the tab's Load button, and then reads only the page on screen while that tab is open. Exports use the open tab's engine. Its **document mode** (a switch in the tab) adds layout analysis (PP-DocLayoutV3) and table structure (Microsoft Table Transformer), and returns each page as Markdown with headings and HTML tables (+112 MB once; offered with the GPU switched on or on a computer with 8 GB of memory). The app runs a 16-bit copy of its models (see below).
 
 ## How it works
 
@@ -19,8 +18,8 @@ Optional second engine (Settings ⚙ → OCR engine): [AksonOCR-Lite](https://hu
 Browser main thread                      Web Worker (lazy-loaded on first OCR)
 ───────────────────                      ─────────────────────────────────────
 React + shadcn/ui                        src/ocr/  TypeScript port of the model's
-pdf.js: render pages, read text layer      reference runtime (line_engine.py):
-Konva: page viewer, boxes, overlays        detect → split → orient/deskew →
+pdf.js: render pages                       reference runtime (line_engine.py):
+Konva: page viewer, line overlays          detect → split → orient/deskew →
 pdf-lib: searchable PDF export             recognize (CTC) → reading order → filter
           │   ImageBitmap (comlink)      OpenCV.js (image ops), clipper (unclip),
           └──────────────────────────▶   onnxruntime-web (WASM threads / WebGPU)

@@ -1,13 +1,11 @@
-import { CheckCheck, ChevronLeft, ChevronRight, Files, Hand, Layers, ListChecks, Loader2, Maximize, ScanText, SquareDashedMousePointer, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Files, Maximize, ZoomIn, ZoomOut } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
-import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { ocrAll, ocrAllFiles, ocrPage } from '@/lib/ocrService'
-import { type Mode, pagesDone, useActiveFile, useActivePage, useApp } from '@/state/store'
-import { BatchProgress } from './BatchProgress'
+import { useActiveFile, useActivePage, useApp } from '@/state/store'
+import { AutoProgress } from './AutoProgress'
 import { SettingsMenu } from './SettingsMenu'
 import type { ViewerHandle } from './PageViewer'
 
@@ -25,17 +23,8 @@ export function Toolbar({ viewer, onOpenFiles }: { viewer: ViewerHandle | null; 
   const file = useActiveFile()
   const current = useApp((s) => s.current)
   const page = useActivePage()
-  const mode = useApp((s) => s.mode)
-  const batch = useApp((s) => s.batch)
-  const nFiles = useApp((s) => s.files.length)
-  // Files that still have pages without text (still-loading files count too).
-  const filesLeft = useApp((s) => s.files.filter((f) => f.status === 'loading' || (f.status === 'ready' && pagesDone(f) < f.pages.length)).length)
   if (!file || !page) return null
-  const multi = nFiles > 1
   const total = file.meta?.pageCount ?? 1
-  const fileId = file.id
-  const running = page.status === 'running'
-  const done = page.status === 'done' && page.result?.source === 'ocr'
 
   return (
     <div className="flex flex-wrap items-center gap-1.5 border-b bg-background px-2 py-1.5">
@@ -44,43 +33,8 @@ export function Toolbar({ viewer, onOpenFiles }: { viewer: ViewerHandle | null; 
           <Files /> <span className="tabular-nums">{useApp.getState().files.length}</span>
         </Button>
       )}
-      <ToggleGroup type="single" variant="outline" size="sm" value={mode} onValueChange={(v) => v && useApp.getState().setMode(v as Mode)}>
-        <ToggleGroupItem value="pan" aria-label={t('toolbar.pan')}>
-          <Hand /> <span className="hidden lg:inline">{t('toolbar.pan')}</span>
-        </ToggleGroupItem>
-        <ToggleGroupItem value="box" aria-label={t('toolbar.box')}>
-          <SquareDashedMousePointer /> <span className="hidden sm:inline">{t('toolbar.box')}</span>
-        </ToggleGroupItem>
-      </ToggleGroup>
-
-      {/* With several files, "OCR all files" is the main action; this one steps back. */}
-      <Button size="sm" variant={multi ? 'outline' : 'default'} onClick={() => void ocrPage(fileId, current).catch(() => {})} disabled={running || !!batch}>
-        {running ? <Loader2 className="animate-spin" /> : <ScanText />}
-        {done ? t('toolbar.ocrAgain') : t('toolbar.ocrPage')}
-      </Button>
-
-      {multi &&
-        (batch?.scope === 'all' ? (
-          <BatchProgress showFile />
-        ) : filesLeft ? (
-          <Button size="sm" onClick={() => void ocrAllFiles()} disabled={!!batch}>
-            <ListChecks /> {t('files.ocrAll')}
-            <span className="rounded-full bg-primary-foreground/20 px-1.5 text-xs tabular-nums">{filesLeft}</span>
-          </Button>
-        ) : (
-          <Button size="sm" variant="ghost" disabled className="text-emerald-700 opacity-100 dark:text-emerald-400">
-            <CheckCheck /> <span className="hidden sm:inline">{t('files.allDone')}</span>
-          </Button>
-        ))}
-
-      {total > 1 &&
-        (batch?.scope === 'file' ? (
-          <BatchProgress />
-        ) : (
-          <Button size="sm" variant="outline" onClick={() => void ocrAll(fileId)} disabled={!!batch}>
-            <Layers /> <span className="hidden sm:inline">{t('toolbar.ocrAll')}</span>
-          </Button>
-        ))}
+      {/* Every page is read automatically: just show how far along that is. */}
+      <AutoProgress />
 
       <div className="ml-auto flex items-center gap-1">
         {total > 1 && (

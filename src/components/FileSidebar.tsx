@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, ChevronRight, ChevronsDownUp, ChevronsUpDown, Circle, CircleDashed, Ellipsis, Folder, FolderOpen, Layers, Loader2, Trash2, X } from 'lucide-react'
+import { AlertTriangle, Check, ChevronRight, ChevronsDownUp, ChevronsUpDown, Circle, CircleDashed, Ellipsis, Folder, FolderOpen, Loader2, Trash2, X } from 'lucide-react'
 import { Collapsible } from 'radix-ui'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -6,11 +6,10 @@ import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { dirname, naturalCompare } from '@/lib/fileTypes'
-import { clearFiles, ocrAllFiles, removeFile } from '@/lib/ocrService'
+import { clearFiles, removeFile } from '@/lib/ocrService'
 import { type FileEntry, fileName, pagesDone, useApp } from '@/state/store'
 import { cn } from 'cn'
 import { AddFilesMenu } from './AddFilesMenu'
-import { BatchProgress } from './BatchProgress'
 import { PageThumbnails } from './PageThumbnails'
 
 function StatusIcon({ f, busy }: { f: FileEntry; busy: boolean }) {
@@ -107,12 +106,11 @@ function FolderGroup({ dir, files, open, onOpenChange, activeId, onPick }: { dir
   )
 }
 
-/** The uploaded files, grouped by folder, with batch OCR. `onPick` closes the mobile drawer. */
+/** The uploaded files, grouped by folder. `onPick` closes the mobile drawer. */
 export function FileSidebar({ onPick }: { onPick?: () => void }) {
   const { t } = useTranslation()
   const files = useApp((s) => s.files)
   const activeId = useApp((s) => s.activeId)
-  const batch = useApp((s) => s.batch)
   const groups = useMemo(() => {
     const sorted = [...files].sort((a, b) => naturalCompare(a.path, b.path))
     const map = new Map<string, FileEntry[]>()
@@ -140,7 +138,6 @@ export function FileSidebar({ onPick }: { onPick?: () => void }) {
     if (activeDir && collapsed.has(activeDir)) setFolder(activeDir, true)
   }
   const folders = groups.map(([dir]) => dir).filter(Boolean)
-  const remaining = files.some((f) => f.status !== 'error' && (f.status === 'loading' || pagesDone(f) < f.pages.length))
 
   return (
     <div className="@container flex h-full min-h-0 min-w-0 flex-col">
@@ -190,17 +187,6 @@ export function FileSidebar({ onPick }: { onPick?: () => void }) {
           )}
         </div>
       </ScrollArea>
-      {files.length > 1 && (
-        <div className="border-t p-2">
-          {batch && batch.scope !== 'file' ? (
-            <BatchProgress showFile className="w-full" />
-          ) : (
-            <Button className="w-full" variant="outline" size="sm" onClick={() => void ocrAllFiles()} disabled={!remaining || !!batch}>
-              <Layers /> {t('files.ocrAll')}
-            </Button>
-          )}
-        </div>
-      )}
     </div>
   )
 }

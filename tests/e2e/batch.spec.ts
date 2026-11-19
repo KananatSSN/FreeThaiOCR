@@ -35,7 +35,7 @@ async function exportVia(page: Page, item: string) {
   return { name: d.suggestedFilename(), data: new Uint8Array(readFileSync(p)) }
 }
 
-test('folder: lists supported files in natural order, OCR all, ZIP of searchable PDFs', async ({ page }) => {
+test('folder: lists supported files in natural order, reads them all, ZIP of searchable PDFs', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   await openFolder(page)
@@ -44,10 +44,9 @@ test('folder: lists supported files in natural order, OCR all, ZIP of searchable
   expect(names.map((n) => n.split('\n')[0].trim())).toEqual(['scan-2.pdf', 'scan-10.pdf', 'title.png'])
   await expect(page.getByRole('button', { name: /^batch\/reports\// })).toBeVisible()
 
-  // The "Added 3 files" toast offers to read them all right away.
-  await page.getByRole('region', { name: /Notifications/ }).getByRole('button', { name: 'OCR all files' }).click()
+  // Every file is read without being asked.
   await expect(page.locator('li [aria-label="done"]')).toHaveCount(3, { timeout: 110_000 })
-  await expect(page.getByRole('button', { name: 'All files read' })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'All pages read' })).toBeVisible()
   await page.screenshot({ path: 'test-results/batch-done.png' })
 
   const zip = await exportVia(page, 'Searchable PDFs')
@@ -63,10 +62,10 @@ test('folder: lists supported files in natural order, OCR all, ZIP of searchable
   expect(errors).toEqual([])
 })
 
-test('export of one file OCRs its missing pages first', async ({ page }) => {
+test('export of one file reads its missing pages first', async ({ page }) => {
   await openFolder(page)
   await page.getByRole('button', { name: /scan-2\.pdf \d+\/\d+/ }).click()
-  // Nothing has been OCR'd: exporting must read the page itself.
+  // Exporting straight away: pages not read yet in the background are read for the export.
   const pdf = await exportVia(page, 'Searchable PDF')
   expect(pdf.name).toBe('scan-2-searchable.pdf')
   expect((await pdfPages(pdf.data))[0]).toContain('ประกาศเรื่องการปรับปรุงระบบบริการออนไลน์')
@@ -93,9 +92,27 @@ test('cancelling an export downloads nothing and keeps finished pages', async ({
   await expect(page.getByText('Export cancelled')).toBeVisible({ timeout: 60_000 })
   await page.waitForTimeout(1500)
   expect(downloaded).toBe(false)
-  // The app is usable again: Export is enabled and the OCR-all button is back.
+  // The app is usable again: Export is enabled and background reading carries on to the end.
   await expect(page.getByRole('button', { name: 'Export' })).toBeEnabled()
-  await expect(page.getByRole('button', { name: /^OCR all files \d+$/ })).toBeEnabled()
+  await expect(page.getByRole('status').filter({ hasText: 'All pages read' })).toBeVisible({ timeout: 110_000 })
+})
+
+test('background reading stops and resumes', async ({ page, context }) => {
+  // Hold the model download so reading is still going when Stop is pressed.
+  await context.route(/\/models\/.*\.onnx$/, async (route) => {
+    await new Promise((r) => setTimeout(r, 3000))
+    await route.continue()
+  })
+  await openFolder(page)
+  await page.getByRole('button', { name: 'Stop' }).click()
+  const stopped = page.getByRole('status').filter({ hasText: /Stopped at \d+ \/ \d+ pages/ })
+  await expect(stopped).toBeVisible()
+  // The page being read when Stop was pressed finishes; nothing after it starts.
+  await page.waitForTimeout(8000)
+  const [, done, total] = (await stopped.innerText()).match(/Stopped at (\d+) \/ (\d+)/)!.map(Number)
+  expect(done).toBeLessThan(total)
+  await page.getByRole('button', { name: 'Resume' }).click()
+  await expect(page.getByRole('status').filter({ hasText: 'All pages read' })).toBeVisible({ timeout: 110_000 })
 })
 })
 
@@ -104,7 +121,7 @@ test('folders fold like an accordion and keep their progress visible', async ({ 
   const reports = page.getByRole('button', { name: /^batch\/reports\// })
   const scan10 = page.getByRole('button', { name: /scan-10\.pdf \d+\/\d+/ })
   await expect(reports).toHaveAttribute('aria-expanded', 'true')
-  await expect(reports).toContainText('0/2')
+  await expect(reports).toContainText(/\d\/2/)
 
   await reports.click()
   await expect(reports).toHaveAttribute('aria-expanded', 'false')
@@ -112,11 +129,8 @@ test('folders fold like an accordion and keep their progress visible', async ({ 
   await expect(page.getByRole('button', { name: /title\.png \d+\/\d+/ })).toBeVisible() // other folder untouched
   await page.screenshot({ path: 'test-results/folders-folded.png', clip: { x: 0, y: 0, width: 420, height: 320 } })
 
-  // Folded folders still show progress as their files get read (started from the toolbar).
-  const toolbarAll = page.getByRole('button', { name: /^OCR all files 3$/ })
-  await expect(toolbarAll).toBeVisible()
-  await page.screenshot({ path: 'test-results/toolbar-ocr-all.png', clip: { x: 0, y: 0, width: 900, height: 120 } })
-  await toolbarAll.click()
+  // Folded folders still show progress as their files get read in the background.
+  await page.screenshot({ path: 'test-results/toolbar-progress.png', clip: { x: 0, y: 0, width: 900, height: 120 } })
   await expect(reports).toContainText('2/2', { timeout: 110_000 })
 
   await reports.click()

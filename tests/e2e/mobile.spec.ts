@@ -1,11 +1,10 @@
 import path from 'node:path'
 import { expect, test } from '@playwright/test'
 
-test('mobile: OCR result opens in a drawer', async ({ page }) => {
+test('mobile: the result opens in a drawer once the page is read', async ({ page }) => {
   await page.goto('/?lng=th')
   await expect(page.getByRole('button', { name: 'ถ่ายรูป' })).toBeVisible()
   await page.locator('input[type=file]').first().setInputFiles(path.join(import.meta.dirname, '..', 'fixtures', 'dark.png'))
-  await page.getByRole('button', { name: /OCR หน้านี้/ }).click()
   const drawer = page.getByRole('dialog')
   await expect(drawer.locator('textarea').first()).toHaveValue(/โปรโมชันพิเศษสำหรับสมาชิก/)
   await page.screenshot({ path: 'test-results/mobile.png' })
@@ -21,8 +20,9 @@ test('mobile: folder files open in a left drawer', async ({ page }) => {
   await expect(drawer.getByText('scan-10.pdf')).toBeVisible()
   await page.waitForTimeout(600) // let the slide-in finish for the screenshot
   await page.screenshot({ path: 'test-results/mobile-files.png' })
-  await drawer.getByRole('button', { name: /scan-10\.pdf \d+\/\d+/ }).click()
+  // Files are read in the background; pick scan-10.pdf once it has been read.
+  await drawer.getByRole('button', { name: /scan-10\.pdf 1\/1/ }).click({ timeout: 110_000 })
   await expect(drawer).toBeHidden()
-  await page.getByRole('button', { name: 'OCR page' }).click()
+  await page.getByRole('button', { name: 'Show results' }).click()
   await expect(page.getByRole('dialog').locator('textarea').first()).toHaveValue(/โปรโมชันพิเศษสำหรับสมาชิก/)
 })

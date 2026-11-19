@@ -2,20 +2,19 @@ import { AlertCircle, Loader2, RotateCcw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { ensureEngine } from '@/lib/ocrService'
+import { retryEngine } from '@/lib/ocrService'
 import { useApp } from '@/state/store'
 
-/** Floating notice while the OCR runtime downloads (first use) or if it failed. */
+/**
+ * Floating notice while OpenThai (read automatically) downloads on first use, or if it
+ * failed. AksonOCR-Lite reports its own loading inside its tab.
+ */
 export function EngineStatus() {
   const { t } = useTranslation()
-  const engine = useApp((s) => s.engine)
-  const stage = useApp((s) => s.engineStage)
-  const error = useApp((s) => s.engineError)
-  const progress = useApp((s) => s.engineProgress)
-  const model = useApp((s) => s.engineModel)
+  const { state: engine, stage, error, progress } = useApp((s) => s.engines.openthai)
   if (engine === 'loading') {
-    const title = stage === 'document' ? t('engine.document') : stage === 'models' ? t('engine.models') : t('engine.runtime')
-    const hint = stage === 'document' ? t('engine.documentFirstTime') : model === 'akson' ? t('engine.aksonFirstTime') : t('engine.firstTime')
+    const title = stage === 'models' ? t('engine.models') : t('engine.runtime')
+    const hint = t('engine.firstTime')
     return (
       <div className="pointer-events-none absolute inset-x-0 top-3 z-10 flex justify-center px-3">
         <div className="flex max-w-md items-start gap-3 rounded-xl border bg-background/95 px-4 py-3 text-sm shadow-lg backdrop-blur">
@@ -38,7 +37,7 @@ export function EngineStatus() {
         <div className="flex max-w-md items-start gap-3 rounded-xl border border-destructive/40 bg-background px-4 py-3 text-sm shadow-lg">
           <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
           <p className="flex-1">{t('engine.error', { error })}</p>
-          <Button size="sm" variant="outline" onClick={() => void ensureEngine().catch(() => {})}>
+          <Button size="sm" variant="outline" onClick={() => void retryEngine('openthai')} aria-label={t('engine.retry')} title={t('engine.retry')}>
             <RotateCcw />
           </Button>
         </div>

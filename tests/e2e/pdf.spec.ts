@@ -15,22 +15,18 @@ async function pdfText(file: string): Promise<string[]> {
   return pages
 }
 
-test('PDF: embedded text, OCR all, exports', async ({ page }) => {
+test('PDF: every page OCR\'d (born-digital too), exports', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (e) => errors.push(e.message))
   page.on('console', (m) => m.type() === 'error' && errors.push(m.text()))
   await page.goto('/?lng=en')
   await page.locator('input[type=file]').first().setInputFiles(fixture('sample.pdf'))
 
-  // Page 1 has a text layer: shown without OCR.
-  await expect(page.getByText('From PDF text')).toBeVisible()
-  await expect(page.locator('textarea').first()).toHaveValue(/เลขที่ INV-\s*2026-0187/)
-  await expect(page.locator('textarea').first()).toHaveValue(/ใบแจ้งค่าบริการ/)
+  // Page 1 has its own text layer, but the text shown is the model's reading of it.
   await expect(page.getByText('Page 1 of 3')).toBeVisible()
-
-  // OCR the remaining (scanned) pages.
-  await page.getByRole('button', { name: 'OCR all pages' }).click()
-  await expect(page.getByRole('button', { name: 'OCR all pages' })).toBeVisible({ timeout: 90_000 })
+  await expect(page.locator('textarea').first()).toHaveValue(/ใบแจ้งค่าบริการ/, { timeout: 90_000 })
+  await expect(page.getByText('OpenThai 2.1', { exact: true })).toBeVisible()
+  await expect(page.getByRole('status').filter({ hasText: 'All pages read' })).toBeVisible({ timeout: 90_000 })
   await page.getByRole('button', { name: 'Next page' }).click()
   await expect(page.locator('textarea').first()).toHaveValue(/ประกาศเรื่องการปรับปรุงระบบบริการออนไลน์/)
   await page.screenshot({ path: 'test-results/pdf-page2.png' })
@@ -49,8 +45,8 @@ test('PDF: embedded text, OCR all, exports', async ({ page }) => {
   expect(txt).toContain('จดหมายข่าวประจำเดือน')
   const json = JSON.parse(readFileSync(await dl('JSON with positions (.json)'), 'utf8'))
   expect(json.pages).toHaveLength(3)
-  expect(json.pages[0].source).toBe('pdf')
-  expect(json.pages[1].source).toBe('ocr')
+  expect(json.pages.map((p: { engine: string }) => p.engine)).toEqual(Array(3).fill('OpenThai2.1-OCR-Text-20261118'))
+  expect(json.pages[0].lines.length).toBeGreaterThan(0)
   expect(json.pages[1].lines[0].box).toHaveLength(4)
 
   const pdfPath = await dl('Searchable PDF')
@@ -60,7 +56,8 @@ test('PDF: embedded text, OCR all, exports', async ({ page }) => {
   // Scanned pages now carry an invisible OCR text layer that extracts as Thai.
   expect(squash(pages[1])).toContain('ประกาศเรื่องการปรับปรุงระบบบริการออนไลน์')
   expect(squash(pages[2])).toContain('จดหมายข่าวประจำเดือน')
-  // The born-digital page keeps its own text.
+  // The born-digital page keeps its own text and gets no second (OCR) layer, so nothing is doubled.
   expect(squash(pages[0])).toContain('INV-2026-0187')
+  expect(squash(pages[0]).split('INV-2026-0187')).toHaveLength(2)
   expect(errors).toEqual([])
 })

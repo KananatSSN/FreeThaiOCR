@@ -6,24 +6,31 @@
   },
   "upload": {
     "title": "Drop images, PDFs or a whole folder here",
-    "hint": "PNG, JPG, WebP, PDF · files are added to a list you can OCR in one go",
+    "hint": "PNG, JPG, WebP or PDF",
     "camera": "Take a photo",
     "another": "Open file",
     "unsupported": "This file type isn't supported. Use an image or a PDF.",
     "failed": "Couldn't open this file: {{error}}"
   },
   "features": {
-    "local": "Private: OCR runs on your device",
-    "box": "Draw boxes to read just part of a page",
-    "pdf": "Multi-page PDFs, with embedded text used when present",
-    "export": "Copy, or export TXT, Markdown, JSON or a searchable PDF"
+    "local": {
+      "title": "Private",
+      "desc": "OCR runs on your device; nothing is uploaded"
+    },
+    "auto": {
+      "title": "Automatic",
+      "desc": "Every page is read as soon as it’s added"
+    },
+    "pdf": {
+      "title": "PDFs & folders",
+      "desc": "Multi-page PDFs and whole folders at once"
+    },
+    "export": {
+      "title": "Export",
+      "desc": "TXT, Markdown, JSON or a searchable PDF"
+    }
   },
   "toolbar": {
-    "pan": "Move",
-    "box": "Draw box",
-    "ocrPage": "OCR page",
-    "ocrAll": "OCR all pages",
-    "ocrAgain": "OCR again",
     "zoomIn": "Zoom in",
     "zoomOut": "Zoom out",
     "fit": "Fit to screen",
@@ -31,8 +38,7 @@
     "next": "Next page",
     "page": "Page {{n}} of {{total}}",
     "cancel": "Cancel",
-    "progress": "OCR {{done}} / {{total}} pages",
-    "boxHint": "Drag on the page to draw a box"
+    "progress": "OCR {{done}} / {{total}} pages"
   },
   "engine": {
     "loading": "Loading OCR engine…",
@@ -45,32 +51,26 @@
     "gpuUnavailable": "WebGPU isn't available in this browser.",
     "document": "Loading document mode…",
     "documentFirstTime": "First time only: about 112 MB (layout and table models), cached for later and offline use.",
-    "aksonFirstTime": "First time only: about 22 MB, cached for later and offline use."
+    "aksonFirstTime": "First time only: about 22 MB, cached for later and offline use.",
+    "retry": "Try again"
   },
   "results": {
     "title": "Results",
-    "page": "Page",
-    "boxes": "Boxes",
-    "empty": "No text yet. Press “OCR page”, or draw a box.",
-    "emptyBoxes": "No boxes yet. Choose “Draw box” and drag on the page.",
-    "fromPdf": "From PDF text",
-    "fromOcr": "OCR",
     "edited": "Edited",
     "running": "Reading…",
     "error": "Failed: {{error}}",
     "copy": "Copy",
     "copied": "Copied",
     "copyAll": "Copy all",
-    "combined": "All boxes in order",
-    "delete": "Delete box",
-    "rerun": "Read again",
     "revert": "Undo edits",
-    "box": "Box {{n}}",
     "rotated": "Page was read rotated {{deg}}°",
-    "clearBoxes": "Delete all boxes",
     "show": "Show results",
     "markdown": "Markdown",
-    "markdownHint": "Read in document mode: headings, paragraphs and tables (HTML) in Markdown"
+    "markdownHint": "Read in document mode: headings, paragraphs and tables (HTML) in Markdown",
+    "retry": "Try again",
+    "paused": "Not read yet. Reading is stopped; press “Resume” in the toolbar.",
+    "queued": "Waiting to be read…",
+    "textOf": "Text read by {{engine}}"
   },
   "export": {
     "menu": "Export",
@@ -93,7 +93,8 @@
     "failed": "Export failed: {{error}}",
     "encrypted": "{{name}} is a protected (encrypted) PDF, so a searchable copy can’t be made. Text and JSON exports still work.",
     "md": "Markdown (.md)",
-    "zipMd": "Markdown files (.md)"
+    "zipMd": "Markdown files (.md)",
+    "engine": "Uses the {{engine}} text (the open tab)"
   },
   "donate": {
     "title": "Support FreeThaiOCR",
@@ -136,11 +137,9 @@
     "remove": "Remove {{name}}",
     "more": "More",
     "clear": "Remove all files",
-    "ocrAll": "OCR all files",
     "error": "Unreadable",
     "expandAll": "Expand all folders",
-    "collapseAll": "Collapse all folders",
-    "allDone": "All files read"
+    "collapseAll": "Collapse all folders"
   },
   "fab": {
     "open": "Support & links",
@@ -159,20 +158,24 @@
   },
   "settings": {
     "title": "Settings",
-    "engine": "OCR engine",
-    "openthai": "OpenThai 2.1 (iApp)",
-    "openthaiHint": "Default. Small (~4 MB) and fast, good on phones.",
-    "akson": "AksonOCR-Lite",
-    "aksonHint": "Reads Thai as whole letter clusters. ~22 MB, slower.",
-    "document": "Document mode: layout and tables",
-    "documentHint": "Column order, headings and tables, as Markdown. +112 MB, best with a GPU.",
-    "documentUnavailable": "Document mode needs a computer with 8 GB of memory, or “Use GPU” switched on.",
-    "documentNeedsAkson": "Available with AksonOCR-Lite.",
-    "confirmAksonTitle": "Switch to AksonOCR-Lite?",
-    "confirmAkson": "The first time, about 22 MB of model files download to your browser and stay cached. Your files still never leave your device.",
     "confirmDocumentTitle": "Turn on document mode?",
     "confirmDocument": "Document mode downloads about 112 MB of layout and table models the first time and can use close to 1 GB of memory without a GPU. Pages are then read as Markdown with headings and tables.",
     "cancel": "Cancel",
     "confirm": "Download and use"
+  },
+  "auto": {
+    "progress": "Reading {{done}} / {{total}} pages",
+    "paused": "Stopped at {{done}} / {{total}} pages",
+    "stop": "Stop",
+    "resume": "Resume",
+    "allDone": "All pages read"
+  },
+  "akson": {
+    "intro": "A second OCR engine that reads Thai as whole letter clusters. It can give a better reading of some pages, and in document mode it keeps headings, columns and tables. Once loaded, it reads the page on screen whenever this tab is open.",
+    "load": "Load AksonOCR (22 MB)",
+    "privacy": "Downloaded once and cached. Your files never leave your device.",
+    "document": "Document mode",
+    "documentHint": "Layout and tables, as Markdown (+112 MB the first time)",
+    "loading": "Loading AksonOCR-Lite…"
   }
 }

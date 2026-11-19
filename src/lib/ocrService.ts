@@ -1,13 +1,12 @@
-// Main-thread side of OCR: owns the worker, a small cache of rendered pages,
-// and a one-at-a-time job queue so OCR never runs two pages at once (phones).
-// Every job names its file, so results land in the right place even when the
-// user has moved on to another file.
+// Main-thread side of OCR: owns the worker, a small cache of rendered pages, and
+// the scheduler that reads pages automatically, one at a time. Every job names
+// its file, so results land in the right place even when the user has moved on.
 import * as Comlink from 'comlink'
-import type { InitStage, OcrWorkerApi, Rect, RecognizeResult } from '@/ocr/worker'
-import { type BatchJob, type FileEntry, freshPages, getFile, pageDone, useApp } from '@/state/store'
+import type { EngineModel, InitStage, OcrWorkerApi, RecognizeResult } from '@/ocr/worker'
+import { type BatchJob, type EngineRead, type FileEntry, freshPages, getFile, readDone, readOf, useApp } from '@/state/store'
 import { documentModeCapable } from './device'
-import { closeDoc, extractPdfText, openDoc, readMeta, renderPage, renderThumb } from './documents'
-import { fileKey, isPdf, triageFiles } from './fileTypes'
+import { closeDoc, openDoc, readMeta, renderPage, renderThumb } from './documents'
+import { fileKey, isPdf, naturalCompare, triageFiles } from './fileTypes'
 
 let worker: Comlink.Remote<OcrWorkerApi> | null = null
 function getWorker() {
@@ -51,64 +50,155 @@ function dropBitmaps(fileId?: string) {
   }
 }
 
-// --- job queue ---------------------------------------------------------------
-let chain: Promise<unknown> = Promise.resolve()
+// --- scheduler -----------------------------------------------------------------
+// One job at a time, so OCR never runs two pages at once (phones). Explicit jobs
+// (exports) go first; otherwise the scheduler picks the next automatic read:
+// Akson on the page on screen while its tab is open, then OpenThai on every page,
+// starting with the page on screen, the rest of its file, then the other files.
+type Job = () => Promise<unknown>
+const urgent: Job[] = []
+let looping = false
+
+function kick() {
+  if (!looping) void loop()
+}
+async function loop() {
+  looping = true
+  try {
+    for (;;) {
+      const job = urgent.shift() ?? nextAuto()
+      if (!job) return
+      try {
+        await job()
+      } catch {
+        /* recorded on the page */
+      }
+    }
+  } finally {
+    looping = false
+  }
+}
 function enqueue<T>(job: () => Promise<T>): Promise<T> {
-  const run = chain.then(job, job)
-  chain = run.catch(() => {})
-  return run
+  return new Promise<T>((resolve, reject) => {
+    urgent.push(() => job().then(resolve, reject))
+    kick()
+  })
 }
 
-export async function ensureEngine(): Promise<void> {
+/** Files in the order the sidebar lists them, the one on screen first. */
+function autoOrder(): FileEntry[] {
   const s = app()
-  if (s.engine === 'ready') return
-  s.setEngine('loading', { stage: 'runtime' })
+  const sorted = [...s.files].sort((a, b) => naturalCompare(a.path, b.path))
+  const active = sorted.findIndex((f) => f.id === s.activeId)
+  return active > 0 ? [sorted[active], ...sorted.slice(0, active), ...sorted.slice(active + 1)] : sorted
+}
+
+/**
+ * Akson should read the page: it hasn't yet, or it read it in the other mode (document mode
+ * was switched meanwhile, even during that read). Text the user edited is never replaced.
+ */
+function aksonNeedsRead(r: EngineRead): boolean {
+  if (r.status === 'idle') return true
+  return r.status === 'done' && !!r.result && r.edited === undefined && (r.result.markdown !== undefined) !== documentModeActive()
+}
+
+/** The next automatic read, or null when there's nothing to do (or it's paused). */
+function nextAuto(): Job | null {
+  const s = app()
+  if (s.batch) return null // an export is reading pages itself
+  const active = getFile(s, s.activeId)
+  // Akson: only the page on screen, only while its tab is open.
+  if (s.resultsTab === 'akson' && s.aksonEnabled && s.engines.akson.state !== 'error' && active?.status === 'ready') {
+    const page = active.pages[s.current]
+    if (page && aksonNeedsRead(readOf(page, 'akson'))) return () => readPage(active.id, s.current, 'akson')
+  }
+  if (s.autoPaused || s.engines.openthai.state === 'error') return null
+  for (const f of autoOrder()) {
+    if (f.status !== 'ready') continue
+    const first = f.id === s.activeId && f.pages[s.current] ? s.current : 0
+    for (let k = 0; k < f.pages.length; k++) {
+      const i = (first + k) % f.pages.length
+      if (f.pages[i].status === 'idle') return () => readPage(f.id, i, 'openthai')
+    }
+  }
+  return null
+}
+
+// Re-plan when anything the scheduler looks at changes.
+useApp.subscribe((s, prev) => {
+  if (
+    s.files !== prev.files ||
+    s.activeId !== prev.activeId ||
+    s.current !== prev.current ||
+    s.resultsTab !== prev.resultsTab ||
+    s.aksonEnabled !== prev.aksonEnabled ||
+    s.documentMode !== prev.documentMode ||
+    s.autoPaused !== prev.autoPaused ||
+    s.batch !== prev.batch ||
+    s.engines !== prev.engines
+  )
+    kick()
+})
+
+/** Stop or resume background OpenThai reading (the page being read finishes). */
+export const setAutoPaused = (on: boolean) => app().setAutoPaused(on)
+
+// --- engines -----------------------------------------------------------------------
+class EngineLoadError extends Error {}
+
+export async function ensureEngine(model: EngineModel): Promise<void> {
+  const s = app()
+  if (s.engines[model].state === 'ready') return
+  s.setEngine(model, 'loading', { stage: 'runtime' })
   try {
     await getWorker().init(
-      s.engineModel,
+      model,
       s.backend,
-      Comlink.proxy((stage: InitStage, progress?: number | null) => app().setEngine(stage === 'ready' ? 'ready' : 'loading', { stage, progress })),
+      Comlink.proxy((stage: InitStage, progress?: number | null) => app().setEngine(model, stage === 'ready' ? 'ready' : 'loading', { stage, progress })),
     )
-    app().setEngine('ready')
+    app().setEngine(model, 'ready')
   } catch (e) {
-    app().setEngine('error', { error: errMsg(e) })
-    throw e
+    app().setEngine(model, 'error', { error: errMsg(e) })
+    throw new EngineLoadError(errMsg(e))
   }
 }
 
+/** Retry an engine that failed to load; the scheduler then carries on. */
+export const retryEngine = (model: EngineModel) => ensureEngine(model).catch(() => {})
+
 /** Akson document mode is on (and offered on this device). */
-export const documentModeActive = () => app().engineModel === 'akson' && app().documentMode && documentModeCapable(app().backend)
+export const documentModeActive = () => app().documentMode && documentModeCapable(app().backend)
 
 let documentReady = false
 /** Download the document-mode models before the first such page, showing progress. */
 async function ensureDocument(): Promise<void> {
   if (documentReady) return
-  app().setEngine('loading', { stage: 'document', progress: null })
+  app().setEngine('akson', 'loading', { stage: 'document', progress: null })
   try {
     await getWorker().prepareDocument(
       app().backend,
-      Comlink.proxy((progress: number | null) => app().setEngine('loading', { stage: 'document', progress })),
+      Comlink.proxy((progress: number | null) => app().setEngine('akson', 'loading', { stage: 'document', progress })),
     )
     documentReady = true
-    app().setEngine('ready')
+    app().setEngine('akson', 'ready')
   } catch (e) {
-    app().setEngine('error', { error: errMsg(e) })
-    throw e
+    app().setEngine('akson', 'error', { error: errMsg(e) })
+    throw new EngineLoadError(errMsg(e))
   }
 }
-// The worker keeps one engine per (model, backend); switching either means loading again.
+// The worker keeps one engine per (model, backend); switching backend means loading again.
 useApp.subscribe((s, prev) => {
-  if (s.engineModel !== prev.engineModel || s.backend !== prev.backend) documentReady = false
+  if (s.backend !== prev.backend) documentReady = false
 })
 
-async function recognize(fileId: string, index: number, rect?: Rect): Promise<RecognizeResult> {
-  await ensureEngine()
-  const document = !rect && documentModeActive()
+async function recognize(model: EngineModel, fileId: string, index: number): Promise<RecognizeResult> {
+  await ensureEngine(model)
+  const document = model === 'akson' && documentModeActive()
   if (document) await ensureDocument()
   const bmp = await getPageBitmap(fileId, index)
   // Send a copy: the cached bitmap stays usable for display.
   const copy = await createImageBitmap(bmp)
-  return getWorker().recognize(app().engineModel, app().backend, Comlink.transfer(copy, [copy]), rect, document)
+  return getWorker().recognize(model, app().backend, Comlink.transfer(copy, [copy]), document)
 }
 
 // --- adding and removing files --------------------------------------------------
@@ -129,7 +219,6 @@ export function addFiles(files: File[]): AddResult {
     kind: isPdf(file) ? 'pdf' : 'image',
     status: 'loading',
     pages: [],
-    textScanned: false,
   }))
   if (entries.length) {
     app().addFiles(entries)
@@ -164,11 +253,10 @@ export function clearFiles() {
   app().clearFiles()
 }
 
-/** When a file comes on screen: read its PDF text layer and render thumbnails. */
+/** When a file comes on screen: render its thumbnails. */
 export async function prepareActive(id: string) {
   const e = fileById(id)
   if (!e || e.status !== 'ready') return
-  await scanEmbeddedText(id)
   await makeThumbs(id)
 }
 
@@ -176,32 +264,6 @@ export async function prepareActive(id: string) {
 useApp.subscribe((s, prev) => {
   if (s.activeId && s.activeId !== prev.activeId) void prepareActive(s.activeId)
 })
-
-/** Use a born-digital PDF's own text layer where it has one (instant, exact). Once per file. */
-const scanning = new Map<string, Promise<void>>()
-function scanEmbeddedText(id: string): Promise<void> {
-  const e = fileById(id)
-  if (!e || e.kind !== 'pdf' || e.textScanned || e.status !== 'ready') return Promise.resolve()
-  let p = scanning.get(id)
-  if (!p) {
-    p = (async () => {
-      const doc = await openDoc(e)
-      for (let i = 0; i < e.pages.length; i++) {
-        if (!fileById(id)) return
-        try {
-          const t = await extractPdfText(doc, i)
-          const page = fileById(id)?.pages[i]
-          if (t && page) app().patchPage(id, i, { hasPdfText: true, ...(page.result ? {} : { status: 'done', result: { source: 'pdf', ...t } }) })
-        } catch {
-          /* unreadable text layer: OCR still works */
-        }
-      }
-      if (fileById(id)) app().patchFile(id, { textScanned: true })
-    })().finally(() => scanning.delete(id))
-    scanning.set(id, p)
-  }
-  return p
-}
 
 async function makeThumbs(id: string) {
   const e = fileById(id)
@@ -221,51 +283,43 @@ async function makeThumbs(id: string) {
 }
 
 // --- OCR actions ----------------------------------------------------------------
-export function ocrPage(fileId: string, index: number): Promise<void> {
-  app().patchPage(fileId, index, { status: 'running', error: undefined })
-  return enqueue(async () => {
+/** Read one page with one engine (runs inside a scheduler job). */
+async function readPage(fileId: string, index: number, engine: EngineModel): Promise<void> {
+  if (!fileById(fileId)?.pages[index]) return
+  app().patchRead(fileId, index, engine, { status: 'running', error: undefined })
+  try {
+    const r = await recognize(engine, fileId, index)
     if (!fileById(fileId)) return
-    try {
-      const r = await recognize(fileId, index)
-      if (!fileById(fileId)) return
-      app().patchPage(fileId, index, {
-        status: 'done',
-        edited: undefined,
-        result: { source: 'ocr', text: r.text, lines: r.lines, rotation: r.rotation, engine: app().engineModel, markdown: r.markdown },
-      })
-    } catch (e) {
-      if (fileById(fileId)) app().patchPage(fileId, index, { status: 'error', error: errMsg(e) })
-      throw e
-    }
-  })
+    app().patchRead(fileId, index, engine, {
+      status: 'done',
+      edited: undefined,
+      result: { text: r.text, lines: r.lines, rotation: r.rotation, engine, markdown: r.markdown },
+    })
+  } catch (e) {
+    if (!fileById(fileId)) return
+    // The engine didn't load: the page waits (the scheduler holds off until a retry).
+    if (e instanceof EngineLoadError) app().patchRead(fileId, index, engine, { status: 'idle' })
+    else app().patchRead(fileId, index, engine, { status: 'error', error: errMsg(e) })
+    throw e
+  }
 }
 
-export function ocrBox(fileId: string, index: number, id: string): Promise<void> {
-  const box = fileById(fileId)?.pages[index]?.boxes.find((b) => b.id === id)
-  if (!box) return Promise.resolve()
-  app().patchBox(fileId, index, id, { status: 'running', error: undefined })
-  return enqueue(async () => {
-    // Re-read the box: it may have been moved, resized or deleted while queued.
-    const cur = fileById(fileId)?.pages[index]?.boxes.find((b) => b.id === id)
-    if (!cur) return
-    try {
-      const r = await recognize(fileId, index, { x: cur.x, y: cur.y, w: cur.w, h: cur.h })
-      app().patchBox(fileId, index, id, { status: 'done', edited: undefined, result: { source: 'ocr', text: r.text, lines: r.lines, engine: app().engineModel } })
-    } catch (e) {
-      app().patchBox(fileId, index, id, { status: 'error', error: errMsg(e) })
-    }
-  })
+/** Read a page again with an engine (after an error). */
+export function rereadPage(fileId: string, index: number, engine: EngineModel) {
+  if (fileById(fileId)?.pages[index]) app().patchRead(fileId, index, engine, { status: 'idle', error: undefined })
 }
 
-const missingPages = (e: FileEntry) => e.pages.map((p, i) => (pageDone(p) ? -1 : i)).filter((i) => i >= 0)
+/** The page still needs reading for an export with `engine` (Akson: also when read in the other mode). */
+const missing = (r: EngineRead, engine: EngineModel) => !readDone(r) || (engine === 'akson' && aksonNeedsRead(r))
+const missingPages = (e: FileEntry, engine: EngineModel) => e.pages.map((p, i) => (missing(readOf(p, engine), engine) ? i : -1)).filter((i) => i >= 0)
 
 /**
- * Make sure every page of the given files has text: read embedded PDF text,
- * then OCR the remaining pages one at a time (rendering each only when its turn
- * comes, so memory stays flat). Shared by "OCR all pages", "OCR all files" and
- * exports. Returns false if it was cancelled.
+ * Make sure every page of the given files has text from `engine`: OCR the missing
+ * pages one at a time (rendering each only when its turn
+ * comes, so memory stays flat). Used by exports; background reading waits meanwhile.
+ * Returns false if it was cancelled.
  */
-export async function completeFiles(fileIds: string[], scope: BatchJob['scope']): Promise<boolean> {
+export async function completeFiles(fileIds: string[], scope: BatchJob['scope'], engine: EngineModel = 'openthai'): Promise<boolean> {
   if (app().batch) return false
   if (cancelPending) {
     // Cancel was pressed before this batch got going (e.g. while export code loaded).
@@ -280,24 +334,27 @@ export async function completeFiles(fileIds: string[], scope: BatchJob['scope'])
   }
   const cancelled = () => !!app().batch?.cancelled
   try {
-    // Wait for page counts, then read text layers so those pages need no OCR.
+    // Wait for page counts.
     for (const id of ids) {
       while (fileById(id)?.status === 'loading') await new Promise((r) => setTimeout(r, 100))
       if (cancelled()) return false
-      await scanEmbeddedText(id)
     }
-    const work = ids.map((id) => ({ id, pages: fileById(id) ? missingPages(fileById(id)!) : [] }))
+    const work = ids.map((id) => ({ id, pages: fileById(id) ? missingPages(fileById(id)!, engine) : [] }))
     bump({ pagesTotal: work.reduce((n, w) => n + w.pages.length, 0) })
     for (const w of work) {
       const e = fileById(w.id)
       if (e) bump({ currentPath: e.path })
       for (const i of w.pages) {
         if (cancelled()) return false
-        if (!fileById(w.id)) break // removed mid-batch
-        if (!pageDone(fileById(w.id)!.pages[i])) {
+        const page = fileById(w.id)?.pages[i]
+        if (!page) break // removed mid-batch
+        // A page already being read in the background finishes on its own.
+        while (readOf(fileById(w.id)?.pages[i] ?? page, engine).status === 'running') await new Promise((r) => setTimeout(r, 100))
+        if (missing(readOf(fileById(w.id)?.pages[i] ?? page, engine), engine)) {
           try {
-            await ocrPage(w.id, i)
-          } catch {
+            await enqueue(() => readPage(w.id, i, engine))
+          } catch (err) {
+            if (err instanceof EngineLoadError) throw err // nothing more can be read
             /* recorded on the page; keep going */
           }
         }
@@ -317,12 +374,9 @@ export async function completeFiles(fileIds: string[], scope: BatchJob['scope'])
   }
 }
 
-export const ocrAll = (fileId: string) => completeFiles([fileId], 'file')
-export const ocrAllFiles = () => completeFiles(app().files.map((f) => f.id), 'all')
-
 let cancelPending = false
 
-/** Cancel the running batch, or the one about to start if none is running yet. */
+/** Cancel the running export batch, or the one about to start if none is running yet. */
 export function cancelBatch() {
   const b = app().batch
   if (b) app().setBatch({ ...b, cancelled: true })

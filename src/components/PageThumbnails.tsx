@@ -1,4 +1,4 @@
-import { Check, FileText, Loader2 } from 'lucide-react'
+import { Check, Loader2 } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { type FileEntry, useApp } from '@/state/store'
@@ -35,8 +35,7 @@ export function PageThumbnails({ file }: { file: FileEntry }) {
             <span className="absolute bottom-0.5 left-0.5 rounded bg-black/60 px-1 text-[10px] font-medium text-white tabular-nums">{i + 1}</span>
             <span className="absolute top-0.5 right-0.5">
               {p.status === 'running' && <Loader2 className="size-3.5 animate-spin rounded-full bg-background p-0.5" />}
-              {p.status === 'done' && p.result?.source === 'ocr' && <Check className="size-3.5 rounded-full bg-emerald-600 p-0.5 text-white" />}
-              {p.status === 'done' && p.result?.source === 'pdf' && <FileText className="size-3.5 rounded-full bg-sky-600 p-0.5 text-white" />}
+              {p.status === 'done' && p.result && <Check className="size-3.5 rounded-full bg-emerald-600 p-0.5 text-white" />}
             </span>
           </button>
         )

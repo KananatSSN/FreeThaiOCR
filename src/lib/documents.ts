@@ -4,9 +4,7 @@ import * as pdfjs from 'pdfjs-dist'
 import type { PDFDocumentProxy } from 'pdfjs-dist'
 import pdfWorkerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url'
 import pdfjsPkg from 'pdfjs-dist/package.json'
-import type { OcrLine } from '@/ocr/engine'
 import type { DocKind, FileEntry, FileMeta } from '@/state/store'
-import { canonical } from '@/ocr/thaiNorm'
 
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorkerUrl
 const PDFJS_ASSETS = `${import.meta.env.BASE_URL}vendor/pdfjs-${pdfjsPkg.version}/`
@@ -122,61 +120,21 @@ export async function renderThumb(doc: LoadedDoc, index: number): Promise<string
   return URL.createObjectURL(await canvas.convertToBlob({ type: 'image/jpeg', quality: 0.7 }))
 }
 
-/** Pages with at least this many non-space characters in their text layer use it instead of OCR. */
+/** Pages with at least this many non-space characters in their text layer count as having text. */
 const MIN_EMBEDDED_CHARS = 20
 
 /**
- * Lines from a PDF page's own text layer, in render-pixel coordinates.
- * Returns null when the page has no meaningful text (a scan).
+ * Whether a PDF page has its own text layer (born-digital, not a scan). Text is never
+ * taken from it (every page is OCR'd); the searchable PDF export uses this only to avoid
+ * adding a second, duplicate text layer to such pages.
  */
-export async function extractPdfText(doc: LoadedDoc, index: number): Promise<{ text: string; lines: OcrLine[] } | null> {
-  if (doc.kind !== 'pdf') return null
+export async function hasTextLayer(doc: LoadedDoc, index: number): Promise<boolean> {
+  if (doc.kind !== 'pdf') return false
   const page = await doc.pdf!.getPage(index + 1)
-  const base = page.getViewport({ scale: 1 })
-  const vp = page.getViewport({ scale: renderScale(base.width, base.height) })
   const content = await page.getTextContent()
-  type Item = { str: string; transform: number[]; width: number; height: number; hasEOL?: boolean }
-  const items = (content.items as Item[]).filter((it) => typeof it.str === 'string')
-  const chars = items.reduce((n, it) => n + it.str.replace(/\s/g, '').length, 0)
-  if (chars < MIN_EMBEDDED_CHARS) return null
-
-  // Each item -> an axis-aligned box in viewport pixels; then group into rows by baseline.
-  // Whitespace-only items are kept: some producers (Chrome among them) emit the
-  // spaces between words as separate items rather than as gaps.
-  const boxes = items
-    .filter((it) => it.str)
-    .map((it) => {
-      const [a, b, , , e, f] = pdfjs.Util.transform(vp.transform, it.transform)
-      const fontH = Math.hypot(a, b) || it.height * vp.scale
-      const w = it.width * vp.scale
-      return { str: it.str, x0: e, x1: e + w, top: f - fontH, bottom: f + fontH * 0.25, base: f, h: fontH }
-    })
-  boxes.sort((p, q) => p.base - q.base || p.x0 - q.x0)
-  const rows: (typeof boxes)[] = []
-  for (const bx of boxes) {
-    const row = rows[rows.length - 1]
-    if (row && Math.abs(row[0].base - bx.base) <= 0.5 * Math.min(row[0].h, bx.h)) row.push(bx)
-    else rows.push([bx])
-  }
-  const lines = rows.map((row, ri) => {
-    row.sort((p, q) => p.x0 - q.x0)
-    let text = ''
-    row.forEach((bx, k) => {
-      if (k && bx.x0 - row[k - 1].x1 > 0.25 * bx.h && !text.endsWith(' ') && !bx.str.startsWith(' ')) text += ' '
-      text += bx.str
-    })
-    const ink = row.filter((r) => r.str.trim())
-    if (!ink.length) return null
-    const x0 = Math.min(...ink.map((r) => r.x0))
-    const x1 = Math.max(...ink.map((r) => r.x1))
-    const y0 = Math.min(...ink.map((r) => r.top))
-    const y1 = Math.max(...ink.map((r) => r.bottom))
-    const line: OcrLine = { text: canonical(text), confidence: 1, row: ri, box: [[x0, y0], [x1, y0], [x1, y1], [x0, y1]] }
-    return line
-  })
-  const kept = lines.filter((l): l is OcrLine => !!l?.text)
+  const chars = content.items.reduce((n, it) => n + ('str' in it ? it.str.replace(/\s/g, '').length : 0), 0)
   page.cleanup()
-  return { text: kept.map((l) => l.text).join('\n'), lines: kept }
+  return chars >= MIN_EMBEDDED_CHARS
 }
 
 /** Page-pixel -> PDF user-space mapping for page `index` (for the searchable PDF export). */
