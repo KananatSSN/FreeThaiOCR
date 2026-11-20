@@ -88,6 +88,8 @@ interface AppState {
   resultsTab: EngineModel
   /** Background OpenThai reading was stopped by the user. */
   autoPaused: boolean
+  /** The viewer colours word boxes by the model's confidence. */
+  showConfidence: boolean
   batch: BatchJob | null
   hoveredLine: number | null
   /** A line clicked in the viewer, for the results panel to reveal (then cleared). */
@@ -105,6 +107,7 @@ interface AppState {
   setEngine(model: EngineModel, state: EngineState, extra?: Omit<EngineInfo, 'state'>): void
   setResultsTab(t: EngineModel): void
   setAutoPaused(on: boolean): void
+  setShowConfidence(on: boolean): void
   patchPage(fileId: string, i: number, patch: Partial<PageState>): void
   /** Patch one engine's read of a page (see `readOf` for where it lives). */
   patchRead(fileId: string, i: number, engine: EngineModel, patch: Partial<EngineRead>): void
@@ -148,6 +151,7 @@ export const useApp = create<AppState>((set, get) => ({
   engines: { openthai: { state: 'idle' }, akson: { state: 'idle' } },
   resultsTab: 'openthai',
   autoPaused: false,
+  showConfidence: readPref<string>('freethaiocr.confidence', 'on') === 'on',
   batch: null,
   hoveredLine: null,
   focusLine: null,
@@ -205,6 +209,10 @@ export const useApp = create<AppState>((set, get) => ({
   },
   setAutoPaused(autoPaused) {
     set({ autoPaused })
+  },
+  setShowConfidence(showConfidence) {
+    writePref('freethaiocr.confidence', showConfidence ? 'on' : 'off')
+    set({ showConfidence })
   },
   patchPage(fileId, i, patch) {
     set((s) => ({ files: mapPage(s.files, fileId, i, (p) => ({ ...p, ...patch })) }))

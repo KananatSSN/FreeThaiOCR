@@ -38,7 +38,9 @@
     "next": "หน้าถัดไป",
     "page": "หน้า {{n}} จาก {{total}}",
     "cancel": "ยกเลิก",
-    "progress": "OCR {{done}} / {{total}} หน้า"
+    "progress": "OCR {{done}} / {{total}} หน้า",
+    "confidence": "ความมั่นใจ",
+    "confidenceOn": "แสดงสีตามความมั่นใจของโมเดล"
   },
   "engine": {
     "loading": "กำลังโหลดระบบ OCR…",
@@ -173,5 +175,11 @@
     "document": "โหมดเอกสาร",
     "documentHint": "เค้าโครงและตาราง เป็น Markdown (+112 MB ในครั้งแรก)",
     "loading": "กำลังโหลด AksonOCR-Lite…"
+  },
+  "confidence": {
+    "high": "≥ 95%",
+    "mid": "80–95%",
+    "low": "< 80%",
+    "legend": "ความมั่นใจของโมเดล"
   }
 }

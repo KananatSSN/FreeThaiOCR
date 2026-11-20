@@ -1,8 +1,9 @@
-import { ChevronLeft, ChevronRight, Files, Maximize, ZoomIn, ZoomOut } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Files, Gauge, Maximize, ZoomIn, ZoomOut } from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
+import { Toggle } from '@/components/ui/toggle'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useActiveFile, useActivePage, useApp } from '@/state/store'
 import { AutoProgress } from './AutoProgress'
@@ -23,6 +24,7 @@ export function Toolbar({ viewer, onOpenFiles }: { viewer: ViewerHandle | null; 
   const file = useActiveFile()
   const current = useApp((s) => s.current)
   const page = useActivePage()
+  const showConf = useApp((s) => s.showConfidence)
   if (!file || !page) return null
   const total = file.meta?.pageCount ?? 1
 
@@ -53,6 +55,19 @@ export function Toolbar({ viewer, onOpenFiles }: { viewer: ViewerHandle | null; 
             <Separator orientation="vertical" className="mx-1 h-5" />
           </>
         )}
+        <Tip label={t('toolbar.confidenceOn')}>
+          <Toggle
+            size="sm"
+            pressed={showConf}
+            onPressedChange={(on) => useApp.getState().setShowConfidence(on)}
+            aria-label={t('toolbar.confidenceOn')}
+            className="data-[state=on]:text-emerald-700 dark:data-[state=on]:text-emerald-400"
+          >
+            <Gauge />
+            <span className="hidden sm:inline">{t('toolbar.confidence')}</span>
+          </Toggle>
+        </Tip>
+        <Separator orientation="vertical" className="mx-1 h-5" />
         <Tip label={t('toolbar.zoomOut')}>
           <Button size="icon-sm" variant="ghost" onClick={() => viewer?.zoomBy(1 / 1.25)} aria-label={t('toolbar.zoomOut')}>
             <ZoomOut />

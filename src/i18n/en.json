@@ -38,7 +38,9 @@
     "next": "Next page",
     "page": "Page {{n}} of {{total}}",
     "cancel": "Cancel",
-    "progress": "OCR {{done}} / {{total}} pages"
+    "progress": "OCR {{done}} / {{total}} pages",
+    "confidence": "Confidence",
+    "confidenceOn": "Colour words by confidence"
   },
   "engine": {
     "loading": "Loading OCR engine…",
@@ -177,5 +179,11 @@
     "document": "Document mode",
     "documentHint": "Layout and tables, as Markdown (+112 MB the first time)",
     "loading": "Loading AksonOCR-Lite…"
+  },
+  "confidence": {
+    "high": "≥ 95%",
+    "mid": "80–95%",
+    "low": "< 80%",
+    "legend": "Model confidence"
   }
 }

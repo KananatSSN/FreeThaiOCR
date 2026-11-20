@@ -1,13 +1,38 @@
 import type Konva from 'konva'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Image as KImage, Layer, Line, Rect, Stage } from 'react-konva'
+import { useTranslation } from 'react-i18next'
+import { CONF_STYLE, confLevel, type ConfLevel, pct } from '@/lib/confidence'
 import { getPageBitmap } from '@/lib/ocrService'
 import { readOf, useActiveFile, useActivePage, useApp, viewEngine } from '@/state/store'
 import type { OcrLine } from '@/ocr/engine'
+import type { Word } from '@/ocr/layout'
 
 const NO_LINES: OcrLine[] = []
 
 const MAX_ZOOM = 8
+
+/** A line's words; a line without word boxes counts as one word. */
+const wordsOf = (l: OcrLine): Word[] => (l.words?.length ? l.words : [{ text: l.text, confidence: l.confidence, box: l.box }])
+
+function Legend() {
+  const { t } = useTranslation()
+  const levels: ConfLevel[] = ['high', 'mid', 'low']
+  return (
+    <div data-testid="confidence-legend" className="pointer-events-none absolute bottom-3 left-3 flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border bg-background/90 px-2.5 py-1.5 text-[11px] text-muted-foreground shadow-sm backdrop-blur">
+      <span className="font-medium text-foreground">{t('confidence.legend')}</span>
+      {levels.map((k) => (
+        <span key={k} className="flex items-center gap-1.5 tabular-nums">
+          <span
+            className="inline-block size-3 rounded-[3px] border-[1.5px]"
+            style={{ borderColor: CONF_STYLE[k].stroke, background: CONF_STYLE[k].fill, borderStyle: CONF_STYLE[k].dash ? 'dashed' : 'solid' }}
+          />
+          {t(`confidence.${k}`)}
+        </span>
+      ))}
+    </div>
+  )
+}
 
 interface View {
   scale: number
@@ -139,6 +164,17 @@ export function PageViewer({ onReady }: { onReady?: (h: ViewerHandle) => void })
   const engine = useApp(viewEngine)
   const lines = (page && readOf(page, engine).result?.lines) || NO_LINES
   const stroke = 1.5 / view.scale
+  const showConf = useApp((s) => s.showConfidence)
+  // The word under the pointer (or last tapped), for its score label.
+  // Kept with the lines it belongs to, so a new page or a re-read drops it.
+  const [tipAt, setTipAt] = useState<{ lines: OcrLine[]; line: number; word: number } | null>(null)
+  const tip = tipAt && tipAt.lines === lines && showConf ? tipAt : null
+  const tipWord = tip && lines[tip.line] ? wordsOf(lines[tip.line])[tip.word] : undefined
+  const setTip = (t: { line: number; word: number } | null) => setTipAt(t && { lines, ...t })
+  const hover = (line: number | null, word?: number) => {
+    useApp.getState().hoverLine(line)
+    setTip(line === null || word === undefined ? null : { line, word })
+  }
 
   return (
     <div ref={wrapRef} className="relative h-full w-full touch-none overflow-hidden bg-muted/60" style={{ cursor: 'grab' }}>
@@ -166,23 +202,69 @@ export function PageViewer({ onReady }: { onReady?: (h: ViewerHandle) => void })
             {img && <KImage name="page" image={img} width={pageSize.width} height={pageSize.height} />}
           </Layer>
           <Layer>
-            {lines.map((l, i) => (
-              <Line
-                key={i}
-                points={l.box.flat()}
-                closed
-                stroke={hoveredLine === i ? '#2563eb' : 'rgba(37,99,235,0.55)'}
-                strokeWidth={hoveredLine === i ? stroke * 2 : stroke}
-                fill={hoveredLine === i ? 'rgba(37,99,235,0.18)' : 'rgba(37,99,235,0.06)'}
-                onMouseEnter={() => useApp.getState().hoverLine(i)}
-                onMouseLeave={() => useApp.getState().hoverLine(null)}
-                onClick={() => useApp.getState().setFocusLine(i)}
-                onTap={() => useApp.getState().setFocusLine(i)}
-              />
-            ))}
+            {lines.map((l, i) => {
+              const on = hoveredLine === i
+              return (
+                <Line
+                  key={i}
+                  points={l.box.flat()}
+                  closed
+                  // With confidence on, the line is only an outline when hovered; its words carry the colour.
+                  stroke={showConf ? (on ? '#2563eb' : 'transparent') : on ? '#2563eb' : 'rgba(37,99,235,0.55)'}
+                  strokeWidth={on ? stroke * 2 : stroke}
+                  fill={on ? 'rgba(37,99,235,0.12)' : showConf ? 'rgba(0,0,0,0.001)' : 'rgba(37,99,235,0.06)'}
+                  onMouseEnter={() => hover(i)}
+                  onMouseLeave={() => hover(null)}
+                  onClick={() => useApp.getState().setFocusLine(i)}
+                  onTap={() => useApp.getState().setFocusLine(i)}
+                />
+              )
+            })}
+            {showConf &&
+              lines.map((l, i) =>
+                wordsOf(l).map((w, k) => {
+                  const st = CONF_STYLE[confLevel(w.confidence)]
+                  const on = tip?.line === i && tip.word === k
+                  return (
+                    <Line
+                      key={`${i}.${k}`}
+                      points={w.box.flat()}
+                      closed
+                      stroke={st.stroke}
+                      strokeWidth={on ? stroke * 2 : stroke}
+                      dash={st.dash?.map((d) => d / view.scale)}
+                      fill={st.fill}
+                      onMouseEnter={() => hover(i, k)}
+                      onMouseLeave={() => hover(null)}
+                      onClick={() => useApp.getState().setFocusLine(i)}
+                      onTap={() => {
+                        setTip({ line: i, word: k })
+                        useApp.getState().setFocusLine(i)
+                      }}
+                    />
+                  )
+                }),
+              )}
           </Layer>
         </Stage>
       )}
+      {tipWord && tipWord.box.length > 0 && (
+        <div
+          data-testid="confidence-tip"
+          className="pointer-events-none absolute z-10 flex max-w-64 items-center gap-2 rounded-md bg-foreground px-2 py-1 text-xs text-background shadow-md"
+          style={{
+            left: Math.max(4, view.x + Math.min(...tipWord.box.map((p) => p[0])) * view.scale),
+            top: view.y + Math.min(...tipWord.box.map((p) => p[1])) * view.scale - 6,
+            transform: 'translateY(-100%)',
+          }}
+        >
+          <span className="truncate">{tipWord.text}</span>
+          <span className="font-semibold tabular-nums" style={{ color: CONF_STYLE[confLevel(tipWord.confidence)].stroke.replace(/[\d.]+\)$/, '1)') }}>
+            {pct(tipWord.confidence)}
+          </span>
+        </div>
+      )}
+      {showConf && lines.length > 0 && <Legend />}
     </div>
   )
 }
