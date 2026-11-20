@@ -10,7 +10,9 @@ const hasQr = existsSync(privateDir) && readdirSync(privateDir).some((f) => /^pr
 const envFile = path.join(import.meta.dirname, '..', '..', '.env')
 const env = (name: string) => (process.env[name] ?? (existsSync(envFile) ? new RegExp(`^${name}=(.*)$`, 'm').exec(readFileSync(envFile, 'utf8'))?.[1] : ''))?.trim()
 const repoUrl = env('VITE_REPO_URL')
-const hire = { email: env('VITE_HIRE_EMAIL'), phone: env('VITE_HIRE_PHONE'), github: env('VITE_HIRE_GITHUB'), website: env('VITE_HIRE_WEBSITE') }
+// Links without a scheme get https:// (src/lib/hire.ts), so "dr-kana.com" doesn't become a path on this site.
+const abs = (v?: string) => (v && !/^https?:\/\//i.test(v) ? `https://${v.replace(/^\/+/, '')}` : v)
+const hire = { email: env('VITE_HIRE_EMAIL'), phone: env('VITE_HIRE_PHONE'), github: abs(env('VITE_HIRE_GITHUB')), website: abs(env('VITE_HIRE_WEBSITE')) }
 
 test('support wheel: links and the donation QR', async ({ page }, info) => {
   await page.goto('/?lng=th')
