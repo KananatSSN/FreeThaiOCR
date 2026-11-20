@@ -107,6 +107,14 @@
     "save": "บันทึกรูป QR",
     "saveHint": "บนมือถือ: บันทึกรูปแล้วเลือกจากหน้าสแกนในแอปธนาคาร"
   },
+  "hire": {
+    "title": "ผู้พัฒนากำลังมองหางาน",
+    "body": "ผู้พัฒนา FreeThaiOCR กำลังมองหางานประจำหรืองานฟรีแลนซ์ ติดต่อได้เลย!",
+    "email": "อีเมล",
+    "phone": "โทรศัพท์",
+    "github": "GitHub",
+    "website": "เว็บไซต์ / เรซูเม่"
+  },
   "about": {
     "button": "เกี่ยวกับ",
     "title": "เกี่ยวกับ FreeThaiOCR",
@@ -145,7 +153,8 @@
     "donate": "สนับสนุนผู้พัฒนา",
     "github": "ซอร์สโค้ดบน GitHub",
     "model": "โมเดล OpenThai บน Hugging Face",
-    "aksonModel": "โมเดล AksonOCR-Lite บน Hugging Face"
+    "aksonModel": "โมเดล AksonOCR-Lite บน Hugging Face",
+    "hire": "เปิดรับงาน"
   },
   "legal": {
     "privacy": "นโยบายความเป็นส่วนตัว",

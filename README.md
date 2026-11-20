@@ -101,6 +101,7 @@ The server never runs OCR; it is a static nginx container. Cloudflare Tunnel pub
 | `VITE_REPO_URL` | Source repository link in the About dialog and support menu |
 | `VITE_OPERATOR_NAME` | Operator named in the privacy policy and terms (default: "the FreeThaiOCR maintainer") |
 | `VITE_CONTACT_EMAIL` | Contact e-mail in the privacy policy and terms (default: the repo's GitHub issues page). Recommended: privacy requests shouldn't have to be public |
+| `VITE_HIRE_EMAIL`, `VITE_HIRE_PHONE`, `VITE_HIRE_GITHUB`, `VITE_HIRE_WEBSITE` | The maintainer's contact details for the "open to work" card in the support menu. Each is optional; the item is hidden if all are unset |
 
 The donation QR card is read from `private/promptpay_qr.(jpg|png|webp)` at build time (the folder is gitignored, so forks never ship your account).
 

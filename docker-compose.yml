@@ -10,6 +10,10 @@ services:
         VITE_DONATE_URL: ${VITE_DONATE_URL:-}
         VITE_REPO_URL: ${VITE_REPO_URL:-}
         VITE_CONTACT_EMAIL: ${VITE_CONTACT_EMAIL:-}
+        VITE_HIRE_EMAIL: ${VITE_HIRE_EMAIL:-}
+        VITE_HIRE_PHONE: ${VITE_HIRE_PHONE:-}
+        VITE_HIRE_GITHUB: ${VITE_HIRE_GITHUB:-}
+        VITE_HIRE_WEBSITE: ${VITE_HIRE_WEBSITE:-}
     image: freethaiocr-web
     restart: unless-stopped
     logging: &logging # error logs only (access logs are off); capped so they can't grow forever

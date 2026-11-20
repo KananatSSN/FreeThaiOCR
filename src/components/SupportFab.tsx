@@ -1,8 +1,11 @@
-import { HandHeart, MessageCircleHeart, X } from 'lucide-react'
+import { BriefcaseBusiness, HandHeart, MessageCircleHeart, X } from 'lucide-react'
 import { type ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { cn } from 'cn'
 import { DonateDialog, donationsEnabled } from './DonateDialog'
+import { GitHubMark } from './GitHubMark'
+import { hireDirectUrl, hireEnabled } from '@/lib/hire'
+import { HireDialog } from './HireDialog'
 
 const REPO_URL = import.meta.env.VITE_REPO_URL?.trim()
 const MODEL_URL = 'https://huggingface.co/iapp/OpenThai2.1-OCR-Text-20261118'
@@ -28,14 +31,6 @@ const TUCK = 'cubic-bezier(0.4, 0, 1, 1)' // accelerate away
 
 const prefersReducedMotion = () => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
-function GitHubMark({ className }: { className?: string }) {
-  return (
-    <svg viewBox="0 0 16 16" aria-hidden="true" className={className} fill="currentColor">
-      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
-    </svg>
-  )
-}
-
 interface Item {
   key: string
   label: string
@@ -44,9 +39,11 @@ interface Item {
   onSelect?: () => void
 }
 
-function useItems(setDonate: (open: boolean) => void): Item[] {
+function useItems(setDonate: (open: boolean) => void, setHire: (open: boolean) => void): Item[] {
   const { t } = useTranslation()
   const items: Item[] = []
+  // Top of the column, so it is the first thing read when the menu opens.
+  if (hireEnabled) items.push({ key: 'hire', label: t('fab.hire'), icon: <BriefcaseBusiness className="size-5 text-sky-600 dark:text-sky-400" />, ...(hireDirectUrl ? { href: hireDirectUrl } : { onSelect: () => setHire(true) }) })
   if (donationsEnabled) items.push({ key: 'donate', label: t('fab.donate'), icon: <HandHeart className="size-5 text-rose-600 dark:text-rose-400" />, onSelect: () => setDonate(true) })
   if (REPO_URL) items.push({ key: 'github', label: t('fab.github'), icon: <GitHubMark className="size-5" />, href: REPO_URL })
   items.push({ key: 'model', label: t('fab.model'), icon: <span className="text-xl leading-none" aria-hidden="true">🤗</span>, href: MODEL_URL })
@@ -56,13 +53,14 @@ function useItems(setDonate: (open: boolean) => void): Item[] {
 
 /**
  * Floating button (bottom right) that opens a column of links: support the
- * developer, the GitHub repo and the OpenThai and AksonOCR-Lite models on Hugging Face.
+ * developer, contact the developer about work, the GitHub repo and the OpenThai and AksonOCR-Lite models on Hugging Face.
  */
 export function SupportFab({ className }: { className?: string }) {
   const { t } = useTranslation()
   const [open, setOpen] = useState(false)
   const [donate, setDonate] = useState(false)
-  const items = useItems(setDonate)
+  const [hire, setHire] = useState(false)
+  const items = useItems(setDonate, setHire)
   const reduced = prefersReducedMotion()
   const root = useRef<HTMLDivElement>(null)
 
@@ -149,6 +147,7 @@ export function SupportFab({ className }: { className?: string }) {
         </button>
       </div>
       <DonateDialog open={donate} onOpenChange={setDonate} />
+      <HireDialog open={hire} onOpenChange={setHire} />
     </>
   )
 }

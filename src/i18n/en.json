@@ -108,6 +108,14 @@
     "save": "Save QR image",
     "saveHint": "On a phone: save the image, then choose it from your banking app’s scan screen."
   },
+  "hire": {
+    "title": "I'm open to work",
+    "body": "I built FreeThaiOCR, and I'm looking for a job or freelance work. Get in touch!",
+    "email": "Email",
+    "phone": "Phone",
+    "github": "GitHub",
+    "website": "Website / CV"
+  },
   "about": {
     "button": "About",
     "title": "About FreeThaiOCR",
@@ -149,7 +157,8 @@
     "donate": "Support the developer",
     "github": "Source code on GitHub",
     "model": "OpenThai model on Hugging Face",
-    "aksonModel": "AksonOCR-Lite model on Hugging Face"
+    "aksonModel": "AksonOCR-Lite model on Hugging Face",
+    "hire": "I'm open to work"
   },
   "legal": {
     "privacy": "Privacy policy",

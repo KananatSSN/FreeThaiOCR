@@ -8,14 +8,16 @@ const hasQr = existsSync(privateDir) && readdirSync(privateDir).some((f) => /^pr
 
 // The app gets VITE_REPO_URL from .env (or the environment), like Vite does.
 const envFile = path.join(import.meta.dirname, '..', '..', '.env')
-const repoUrl = (process.env.VITE_REPO_URL ?? (existsSync(envFile) ? /^VITE_REPO_URL=(.*)$/m.exec(readFileSync(envFile, 'utf8'))?.[1] : ''))?.trim()
+const env = (name: string) => (process.env[name] ?? (existsSync(envFile) ? new RegExp(`^${name}=(.*)$`, 'm').exec(readFileSync(envFile, 'utf8'))?.[1] : ''))?.trim()
+const repoUrl = env('VITE_REPO_URL')
+const hire = { email: env('VITE_HIRE_EMAIL'), phone: env('VITE_HIRE_PHONE'), github: env('VITE_HIRE_GITHUB'), website: env('VITE_HIRE_WEBSITE') }
 
 test('support wheel: links and the donation QR', async ({ page }, info) => {
   await page.goto('/?lng=th')
   const fab = page.getByRole('button', { name: 'สนับสนุนและลิงก์' })
   await expect(fab).toHaveAttribute('aria-expanded', 'false')
   await fab.click()
-  await expect(page.getByRole('button', { name: 'ปิด' })).toHaveAttribute('aria-expanded', 'true')
+  await expect(page.getByRole('button', { name: 'ปิด', exact: true })).toHaveAttribute('aria-expanded', 'true')
 
   const model = page.getByRole('link', { name: 'โมเดล OpenThai บน Hugging Face' })
   await expect(model).toHaveAttribute('href', 'https://huggingface.co/iapp/OpenThai2.1-OCR-Text-20261118')
@@ -58,4 +60,28 @@ test('support wheel: links and the donation QR', async ({ page }, info) => {
   await expect.poll(() => img.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0)).toBe(true)
   await expect(dialog.getByRole('link', { name: 'บันทึกรูป QR' })).toHaveAttribute('download', 'FreeThaiOCR-PromptPay.jpg')
   await page.screenshot({ path: `test-results/donate-${info.project.name}.png` })
+})
+
+test('support wheel: the open-to-work card', async ({ page }) => {
+  await page.goto('/?lng=en')
+  await page.getByRole('button', { name: 'Support & links' }).click()
+  const item = page.getByRole('button', { name: "I'm open to work" })
+  // Hidden (rather than an empty card) when no contact details are configured.
+  if (!Object.values(hire).some(Boolean)) return await expect(page.getByLabel("I'm open to work")).toHaveCount(0)
+  // Only a website: the item links straight to it, no card.
+  if (hire.website && !hire.email && !hire.phone && !hire.github) {
+    const direct = page.getByRole('link', { name: "I'm open to work" })
+    await expect(direct).toHaveAttribute('href', hire.website)
+    return await expect(direct).toHaveAttribute('target', '_blank')
+  }
+  await item.click()
+  const dialog = page.getByRole('dialog', { name: "I'm open to work" })
+  await expect(dialog).toBeVisible()
+  const link = (name: string) => dialog.getByRole('link', { name: new RegExp(`^${name}`) })
+  if (hire.email) await expect(link('Email')).toHaveAttribute('href', `mailto:${hire.email}`)
+  if (hire.phone) await expect(link('Phone')).toHaveAttribute('href', `tel:${hire.phone.replace(/[^\d+]/g, '')}`)
+  if (hire.github) await expect(link('GitHub')).toHaveAttribute('href', hire.github)
+  if (hire.website) await expect(link('Website')).toHaveAttribute('href', hire.website)
+  for (const [key, value] of Object.entries(hire)) if (!value) await expect(link({ email: 'Email', phone: 'Phone', github: 'GitHub', website: 'Website' }[key]!)).toHaveCount(0)
+  await page.screenshot({ path: `test-results/hire-${test.info().project.name}.png` })
 })
