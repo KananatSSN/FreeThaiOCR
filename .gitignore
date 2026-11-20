@@ -34,3 +34,6 @@ private/
 # Local fp16 AksonOCR-Lite conversion (scripts/akson-fp16), uploaded to Hugging Face, never committed
 .akson-fp16/
 .akson-fp16.src/
+
+# Promo video project (Remotion): kept locally, not in the repo
+promo/
